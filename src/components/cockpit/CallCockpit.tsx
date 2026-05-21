@@ -16,6 +16,8 @@ import { useCrisis } from "@/components/app/CrisisProvider";
 import { BLANK_ASAM_SCORES, asamAcuityLight, type AsamScores } from "@/lib/data/asam";
 import type { Payor } from "@/lib/data/payors";
 import { appendLog, type CallOutcome } from "@/lib/data/callLog";
+import { useRouter, useSearchParams } from "next/navigation";
+import { DEMO_SCENARIOS } from "@/lib/data/demoScenarios";
 
 const formatTime = (ms: number) => {
   const total = Math.floor(ms / 1000);
@@ -60,6 +62,8 @@ export function CallCockpit() {
   );
   const crisis = useCrisis();
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const activeSegment = CALL_SEGMENTS[segIdx];
   const tone = segmentTone[activeSegment.tone];
@@ -77,6 +81,88 @@ export function CallCockpit() {
       if (interval.current) clearInterval(interval.current);
     };
   }, [startedAt]);
+
+  // URL-driven scenario preload from /demo
+  useEffect(() => {
+    const scenario = searchParams.get("scenario");
+    if (!scenario) return;
+    const match = DEMO_SCENARIOS.find((d) => d.id === scenario);
+    if (!match) return;
+    const payorOverlay: Payor = {
+      id: `demo-${match.id}`,
+      parent:
+        match.payor.light === "GREEN"
+          ? "CIGNA / Evernorth"
+          : match.payor.light === "YELLOW"
+            ? "Aetna"
+            : "UHC",
+      plan: match.insurance,
+      idPattern: "",
+      cardClues: "",
+      oonPct: match.payor.oonPct,
+      confidenceLevel: "Demo",
+      appealNotes: "",
+      observedInNetwork: "Y",
+      lastUpdated: new Date().toISOString().slice(0, 10),
+      light: match.payor.light,
+      appealRoi: match.payor.appealROI,
+      losDays: match.payor.losDays,
+      estPerDay: match.payor.estPerDay,
+      notesConfidence: "",
+      decisionStatus: "",
+      admitRule: match.payor.admitRule,
+      exceptionAuthority: "",
+      appealPriority: "",
+      denialPattern: match.payor.denialProb,
+      timelyFilingDays: "",
+      priorAuthRequired: "",
+      medNecessityThreshold: "",
+      networkLeakageRisk: "",
+      contractualOpportunity: "",
+      volumePotential: "",
+      strategicPriority: "",
+      sourceUrl: "",
+      confidenceTag: "INVENTORY",
+      serviceLineScope: "",
+      rowCategory: "Commercial Carrier",
+    };
+    setPayor(payorOverlay);
+    if (match.payor.light === "RED") {
+      setAsam({ intox: 3, biomed: 2, emotional: 3, readiness: 3, relapse: 3, environment: 3 });
+    } else if (match.payor.light === "YELLOW") {
+      setAsam({ intox: 2, biomed: 1, emotional: 2, readiness: 2, relapse: 2, environment: 2 });
+    } else {
+      setAsam({ intox: 1, biomed: 0, emotional: 2, readiness: 1, relapse: 1, environment: 1 });
+    }
+    setSegIdx(2);
+    router.replace("/app");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cockpit hotkeys
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inField =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (inField) return;
+      if (e.key === "j" || e.key === "J") {
+        e.preventDefault();
+        setSegIdx((i) => Math.max(0, i - 1));
+      } else if (e.key === "k" || e.key === "K") {
+        e.preventDefault();
+        setSegIdx((i) => Math.min(CALL_SEGMENTS.length - 1, i + 1));
+      } else if (e.key === " " || e.code === "Space") {
+        e.preventDefault();
+        setStartedAt((cur) => (cur ? null : Date.now() - elapsed));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [elapsed]);
 
   const sopHighlight = useMemo(() => {
     if (!payor) return 1;

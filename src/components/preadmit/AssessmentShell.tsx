@@ -242,6 +242,92 @@ export function AssessmentShell() {
     } catch {}
   };
 
+  const loadDemoData = () => {
+    setState({
+      ...blankPaa(),
+      name: "Demo Caller",
+      dob: "06/14/1988",
+      age: "37",
+      sex: "Female",
+      gender: "Cis female",
+      address: "Long Beach, CA",
+      occupation: "Paramedic, currently on leave",
+      preferredContact: "text",
+      contactValue: "demo@example.com",
+      presentingFactor:
+        "Started drinking heavily after a coworker died on shift 8 months ago. Tried outpatient twice. Daughter (10) is starting to ask why mom sleeps so much. Reached out today because last night she scared herself.",
+      symptoms: {
+        "Sadness/tearfulness": true,
+        "Changes in sleep": true,
+        "Loss of interest in activities": true,
+        "Feelings of hopelessness": true,
+        "Avoidance/withdrawal": true,
+        "Trauma (past or current)": true,
+      },
+      traumaYN: "yes",
+      traumaDetail:
+        "On-the-job traumatic loss; reluctant to elaborate over the phone. Asked to wait until in-person clinical session.",
+      substances: {
+        Alcohol: {
+          route: "oral",
+          frequency: "daily",
+          amount: "~1L vodka",
+          lastUse: "this morning",
+        },
+        Klonopin: { route: "oral", frequency: "PRN 2-3x/wk", amount: "1mg", lastUse: "yesterday" },
+      },
+      withdrawalRisk: "moderate",
+      detoxHx: "One alcohol detox 5 years ago, no seizures.",
+      phq9: { 0: 2, 1: 3, 2: 3, 3: 2, 4: 2, 5: 2, 6: 1, 7: 1, 8: 1 },
+      gad7: { 0: 3, 1: 2, 2: 3, 3: 2, 4: 1, 5: 2, 6: 2 },
+      cssrs: { 0: 1, 1: 1, 2: 0, 3: 0, 4: 0, 5: 1 },
+      selfHarmHx: "no",
+      hiCurrent: "no",
+      hiPast: "no",
+      hiDetail: "",
+      safetyPlan:
+        "Daughter is at grandmother's tonight; agreed to remove household alcohol and call 988 if SI escalates.",
+      legalIssues: "",
+      probationOrParole: "no",
+      violenceHx: "no",
+      mhDx: "Adjustment d/o, alcohol use d/o severe",
+      primaryDx: "AUD severe; r/o complex PTSD",
+      asdScores: [0, 0, 0, 0, 0, 0],
+      iddPresent: "no",
+      regionalCenter: "no",
+      conservatorship: "none",
+      psychHospCount: "0",
+      psychHospLast: "",
+      mhProgramsPrior: "Two prior IOPs; completed neither.",
+      saProgramsPrior: "One inpatient 5 years ago, 7-day medical detox + 14-day residential.",
+      pastTxOutcomes:
+        "Worked while sober for 4 years post-treatment. Trigger was the coworker loss; no group support since.",
+      allergies: "nka",
+      medications: "Sertraline 100mg daily (recent), Klonopin 1mg PRN",
+      medsBringing: "All bottles",
+      heightWeight: "5'6\" / 170lb",
+      conditions: { "chronic-pain": true },
+      conditionsDetail: "Lower-back pain since 2022 work injury, managed with OTC + intermittent PT.",
+      mobilityNeeds: "None",
+      immediateMedical: "no",
+      livingSituation:
+        "Renting a 2BR with daughter (10), recently lost shift income, can cover rent another 2 months.",
+      socialSupport: "yes",
+      socialSupportDetail: "Mother lives nearby and helps with daughter; sister out of state.",
+      employed: "no",
+      inSchool: "no",
+      treatmentGoals:
+        "Be the mom her daughter remembers from before the loss. Sleep without a bottle. Decide whether to return to paramedic work or change careers.",
+      clientType: "new",
+      comingFrom: "Self-referral",
+      paymentType: "insurance",
+      repNotes:
+        "Caller is clear-headed, articulate, asking for help. Recommend Clinical Director call same-day; LOC likely 3.5 given environment + history. Wants to start within the week.",
+      asam: { intox: 2, biomed: 1, emotional: 2, readiness: 1, relapse: 2, environment: 2 },
+    });
+    setSectionIdx(0);
+  };
+
   const sectionId = PAA_SECTIONS[sectionIdx].id;
 
   // Resume-draft prompt
@@ -1188,6 +1274,9 @@ export function AssessmentShell() {
                 <div className="mt-3 flex flex-wrap gap-3">
                   <Button onClick={submit} disabled={submitting}>
                     {submitting ? "Submitting…" : "Submit (DEID + send)"}
+                  </Button>
+                  <Button variant="ghost" onClick={loadDemoData}>
+                    Load demo data
                   </Button>
                   <Button variant="ghost" onClick={reset}>
                     Reset draft

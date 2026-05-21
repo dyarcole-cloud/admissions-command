@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,11 @@ export function DemoExplorer({ scenarios }: { scenarios: DemoScenario[] }) {
                 {active.savings.split(" ").slice(1).join(" ")}
               </div>
             </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/app?scenario=${active.id}`}>
+              <Button size="sm">Open this scenario in the cockpit →</Button>
+            </Link>
           </div>
         </Card>
 
