@@ -33,7 +33,7 @@ export type Payor = {
   oonPct: string;
   confidenceLevel: string;
   appealNotes: string;
-  observedAtNeurish: string;
+  observedInNetwork: string;
   lastUpdated: string;
   light: Light;
   appealRoi: AppealRoi | "";
@@ -128,10 +128,10 @@ const PAYORS: Payor[] = (() => {
       idPattern: r["Typical Prefix / ID Pattern"] || "",
       cardClues:
         r["Identifier on Card (Prefix / Network / Group Clue)"] || "",
-      oonPct: r["Estimated OON Reimbursement % (Neurish)"] || "",
+      oonPct: r["Estimated OON Reimbursement %"] || "",
       confidenceLevel: r["Confidence Level"] || "",
       appealNotes: r["Appeal / UR Notes"] || "",
-      observedAtNeurish: r["Observed at Neurish? (Y/N)"] || "",
+      observedInNetwork: r["Observed in Network (Y/N)"] || "",
       lastUpdated: r["Last Updated"] || "",
       light: normalizeLight(r["Traffic Light"] || ""),
       appealRoi: normalizeAppealRoi(r["Appeal ROI"] || ""),

@@ -12,9 +12,11 @@ import { AdvisorChat } from "./AdvisorChat";
 import { AsamScorer } from "./AsamScorer";
 import { CrisisOverlay } from "./CrisisOverlay";
 import { RiskFlagStrip } from "./RiskFlagStrip";
-import { BLANK_ASAM_SCORES, type AsamScores } from "@/lib/data/asam";
+import { MiPrompts } from "./MiPrompts";
+import { BLANK_ASAM_SCORES, asamAcuityLight, type AsamScores } from "@/lib/data/asam";
 import type { CrisisId } from "@/lib/data/crisisProtocols";
 import type { Payor } from "@/lib/data/payors";
+import { appendLog, type CallOutcome } from "@/lib/data/callLog";
 
 const formatTime = (ms: number) => {
   const total = Math.floor(ms / 1000);
@@ -89,6 +91,40 @@ export function CallCockpit() {
     setCrisisId(null);
   };
 
+  const logCall = (outcome: CallOutcome) => {
+    if (elapsed < 5000 && !payor) return;
+    const now = Date.now();
+    const acuity = asamAcuityLight(asam);
+    const asamMax = Math.max(...Object.values(asam));
+    appendLog({
+      id: crypto.randomUUID(),
+      startedAt: startedAt ?? now - elapsed,
+      endedAt: now,
+      durationSec: Math.floor(elapsed / 1000),
+      segmentsReached: segIdx + 1,
+      payorPlan: payor ? payor.plan || payor.parent : null,
+      payorParent: payor?.parent ?? null,
+      payorLight: payor?.light ?? null,
+      asamMax,
+      acuity,
+      outcome,
+      flagsRed: [
+        acuity === "RED",
+        asam.intox >= 3,
+        asam.emotional >= 3,
+        asam.biomed >= 4,
+      ].filter(Boolean).length,
+      flagsYellow: [
+        acuity === "YELLOW",
+        asam.intox === 2,
+        asam.emotional === 2,
+        asam.biomed === 2 || asam.biomed === 3,
+      ].filter(Boolean).length,
+      rep: null,
+    });
+    handleReset();
+  };
+
   const openCrisis = (id?: CrisisId) => {
     setCrisisId(id ?? "si");
     setCrisisOpen(true);
@@ -127,6 +163,19 @@ export function CallCockpit() {
           <Button variant={startedAt ? "destructive" : "primary"} onClick={handleStart}>
             {startedAt ? "Pause" : elapsed > 0 ? "Resume" : "Start call"}
           </Button>
+          {elapsed > 5000 && (
+            <>
+              <Button variant="utility" size="sm" onClick={() => logCall("placed")}>
+                Log · Placed
+              </Button>
+              <Button variant="utility" size="sm" onClick={() => logCall("referred")}>
+                Log · Referred
+              </Button>
+              <Button variant="utility" size="sm" onClick={() => logCall("lost")}>
+                Log · Lost
+              </Button>
+            </>
+          )}
           <Button variant="utility" size="sm" onClick={handleReset}>
             Reset
           </Button>
@@ -307,6 +356,8 @@ export function CallCockpit() {
               </p>
             )}
           </Card>
+
+          <MiPrompts segmentId={activeSegment.id} />
         </div>
       </div>
 

@@ -4,7 +4,7 @@
  *
  * Reference: ASAM Criteria 4th edition (2023). Recommendation logic is
  * a simplified heuristic — final LOC is always a clinician's call.
- * Borrowed from Intake AI's ASAM-at-intake pattern.
+ * The ASAM-at-intake pattern is borrowed from a sibling NBTN prototype.
  */
 
 export type AsamDimensionId =

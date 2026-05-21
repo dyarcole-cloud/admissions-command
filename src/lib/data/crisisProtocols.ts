@@ -2,7 +2,7 @@
  * Crisis protocols — clinician-vetted scripts to anchor staff in real
  * crisis moments on an admissions call.
  *
- * Borrowed from Intake AI's De-Escalation Engine pattern. Reviewed
+ * The De-Escalation Engine pattern is from a sibling NBTN prototype. Reviewed
  * language draws on QPR (Question/Persuade/Refer), trauma-informed
  * de-escalation, and SAMHSA crisis-intervention guidance.
  *

@@ -278,7 +278,7 @@ export function PayorsBrowser({ initialResults, initialTotal }: Props) {
                             ["Volume potential", p.volumePotential],
                             ["Strategic priority", p.strategicPriority],
                             ["Confidence", p.confidenceTag],
-                            ["Observed at Neurish", p.observedAtNeurish],
+                            ["Observed in network", p.observedInNetwork],
                             ["Last updated", p.lastUpdated],
                             ["Service line", p.serviceLineScope],
                           ]
