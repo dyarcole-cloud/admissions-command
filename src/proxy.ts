@@ -22,7 +22,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === "true") {
+  if (
+    process.env.DEMO_MODE === "true" ||
+    process.env.NEXT_PUBLIC_DEMO_MODE === "true"
+  ) {
     return NextResponse.next();
   }
 
