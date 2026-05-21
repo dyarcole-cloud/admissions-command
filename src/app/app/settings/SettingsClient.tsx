@@ -20,6 +20,7 @@ import {
   type AiSettings,
 } from "@/lib/data/aiSettings";
 import { AuditLogViewer } from "./AuditLogViewer";
+import { DangerZone } from "./DangerZone";
 
 export function SettingsClient() {
   const [org, setOrg] = useState<OrgSettings>(DEFAULT_ORG);
@@ -457,6 +458,8 @@ export function SettingsClient() {
       </Card>
 
       <AuditLogViewer />
+
+      <DangerZone />
 
       {savedAt && (
         <div className="text-right font-mono text-[10px] tabular-nums text-[var(--ink-4)]">
