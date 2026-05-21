@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InsuranceIntel } from "./InsuranceIntel";
 import { AdvisorChat } from "./AdvisorChat";
-import type { Light } from "@/lib/utils";
-import type { PayorSummary } from "@/lib/data/demoScenarios";
+import type { Payor } from "@/lib/data/payors";
 
 const formatTime = (ms: number) => {
   const total = Math.floor(ms / 1000);
@@ -32,10 +31,7 @@ export function CallCockpit() {
   const [segIdx, setSegIdx] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [payor, setPayor] = useState<{
-    name: string;
-    summary: PayorSummary;
-  } | null>(null);
+  const [payor, setPayor] = useState<Payor | null>(null);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [objection, setObjection] = useState<string | null>(null);
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -59,8 +55,8 @@ export function CallCockpit() {
 
   const sopHighlight = useMemo(() => {
     if (!payor) return 1;
-    if (payor.summary.light === "GREEN") return 5;
-    if (payor.summary.light === "YELLOW") return 6;
+    if (payor.light === "GREEN") return 5;
+    if (payor.light === "YELLOW") return 6;
     return 7;
   }, [payor]);
 
@@ -96,10 +92,10 @@ export function CallCockpit() {
             Cockpit
             <span className="ml-2 align-middle">
               <Badge
-                tone={payor ? payor.summary.light : "neutral"}
+                tone={payor ? payor.light : "neutral"}
                 className="text-[10px]"
               >
-                {payor ? payor.summary.light : "no payor"}
+                {payor ? payor.light : "no payor"}
               </Badge>
             </span>
           </h1>
@@ -246,8 +242,8 @@ export function CallCockpit() {
               context={{
                 segment: activeSegment.id,
                 segmentName: activeSegment.name,
-                payorName: payor?.name ?? null,
-                payorLight: payor?.summary.light ?? null,
+                payorName: payor ? (payor.plan || payor.parent) : null,
+                payorLight: payor?.light ?? null,
                 checklist,
                 objection,
               }}

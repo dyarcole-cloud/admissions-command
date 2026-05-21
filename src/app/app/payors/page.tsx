@@ -2,85 +2,61 @@ import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CLAIMS_TIERS } from "@/lib/data/claimsTiers";
-import { DEMO_SCENARIOS } from "@/lib/data/demoScenarios";
+import { searchPayors, payorCounts } from "@/lib/data/payors";
+import { PayorsBrowser } from "./PayorsBrowser";
 
 export const metadata: Metadata = { title: "Payor Engine" };
 
 export default function PayorsPage() {
-  const payors = DEMO_SCENARIOS.map((d) => ({
-    name: d.insurance,
-    summary: d.payor,
-  }));
+  const counts = payorCounts();
+  const initial = searchPayors({ limit: 500 });
 
   return (
     <div className="space-y-6">
-      <div>
-        <span className="overline">Payor Engine</span>
-        <h1
-          className="font-display mt-1 text-3xl text-white"
-          style={{ fontVariationSettings: "'opsz' 96" }}
-        >
-          Payors
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--ink-2)]">
-          Light-tiered playbook per insurance plan. Seed data shown until
-          tenant import lands in week 2 (CSV + JSON).
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <span className="overline">Payor Engine · ANTN Matrix 2026.04</span>
+          <h1
+            className="font-display mt-1 text-3xl text-white"
+            style={{ fontVariationSettings: "'opsz' 96" }}
+          >
+            Payors
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--ink-2)]">
+            Light-tiered playbook across {counts.total.toLocaleString()} plans —
+            commercial, Medicaid, union, government/military, and legacy
+            references. Click any row to expand the full record.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <Card className="px-4 py-2.5">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+              Green
+            </div>
+            <div className="font-mono text-2xl tabular-nums text-[var(--success)]">
+              {counts.byLight.GREEN.toLocaleString()}
+            </div>
+          </Card>
+          <Card className="px-4 py-2.5">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+              Yellow
+            </div>
+            <div className="font-mono text-2xl tabular-nums text-[var(--warning)]">
+              {counts.byLight.YELLOW.toLocaleString()}
+            </div>
+          </Card>
+          <Card className="px-4 py-2.5">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+              Red
+            </div>
+            <div className="font-mono text-2xl tabular-nums text-[var(--error-soft)]">
+              {counts.byLight.RED.toLocaleString()}
+            </div>
+          </Card>
+        </div>
       </div>
 
-      <Card variant="flat">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="px-3 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Plan
-                </th>
-                <th className="px-3 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Light
-                </th>
-                <th className="px-3 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  OON %
-                </th>
-                <th className="px-3 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Admit rule
-                </th>
-                <th className="px-3 py-3 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  LOS days
-                </th>
-                <th className="px-3 py-3 text-right text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Est / day
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {payors.map((p) => (
-                <tr
-                  key={p.name}
-                  className="border-b border-white/[0.04] last:border-0"
-                >
-                  <td className="px-3 py-3 text-white">{p.name}</td>
-                  <td className="px-3 py-3">
-                    <Badge tone={p.summary.light}>{p.summary.light}</Badge>
-                  </td>
-                  <td className="px-3 py-3 font-mono text-[var(--ink-2)] tabular-nums">
-                    {p.summary.oonPct}
-                  </td>
-                  <td className="px-3 py-3 text-[var(--ink-2)]">
-                    {p.summary.admitRule}
-                  </td>
-                  <td className="px-3 py-3 font-mono text-[var(--ink-2)] tabular-nums">
-                    {p.summary.losDays}
-                  </td>
-                  <td className="px-3 py-3 text-right font-mono text-white tabular-nums">
-                    {p.summary.estPerDay}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <PayorsBrowser initialResults={initial} initialTotal={counts.total} />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {(["GREEN", "YELLOW", "RED"] as const).map((light) => {
