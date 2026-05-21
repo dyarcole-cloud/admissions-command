@@ -1,0 +1,325 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CALL_SEGMENTS } from "@/lib/data/callSegments";
+import { OBJECTIONS } from "@/lib/data/objections";
+import { SOP_STEPS } from "@/lib/data/sopSteps";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { InsuranceIntel } from "./InsuranceIntel";
+import { AdvisorChat } from "./AdvisorChat";
+import type { Light } from "@/lib/utils";
+import type { PayorSummary } from "@/lib/data/demoScenarios";
+
+const formatTime = (ms: number) => {
+  const total = Math.floor(ms / 1000);
+  const m = Math.floor(total / 60).toString().padStart(2, "0");
+  const s = (total % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+const segmentTone: Record<string, { glow: string; ring: string }> = {
+  rapport: { glow: "rgba(167,139,250,0.55)", ring: "var(--violet)" },
+  data: { glow: "rgba(196,181,253,0.55)", ring: "var(--periwinkle)" },
+  clinical: { glow: "rgba(196,181,253,0.6)", ring: "var(--periwinkle)" },
+  options: { glow: "rgba(234,88,12,0.55)", ring: "var(--copper-bright)" },
+  commit: { glow: "rgba(167,139,250,0.55)", ring: "var(--violet)" },
+};
+
+export function CallCockpit() {
+  const [segIdx, setSegIdx] = useState(0);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [payor, setPayor] = useState<{
+    name: string;
+    summary: PayorSummary;
+  } | null>(null);
+  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [objection, setObjection] = useState<string | null>(null);
+  const interval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const activeSegment = CALL_SEGMENTS[segIdx];
+  const tone = segmentTone[activeSegment.tone];
+
+  // Drift-free timer: compute from startedAt, not accumulator
+  useEffect(() => {
+    if (startedAt) {
+      interval.current = setInterval(() => {
+        setElapsed(Date.now() - startedAt);
+      }, 250);
+    } else if (interval.current) {
+      clearInterval(interval.current);
+    }
+    return () => {
+      if (interval.current) clearInterval(interval.current);
+    };
+  }, [startedAt]);
+
+  const sopHighlight = useMemo(() => {
+    if (!payor) return 1;
+    if (payor.summary.light === "GREEN") return 5;
+    if (payor.summary.light === "YELLOW") return 6;
+    return 7;
+  }, [payor]);
+
+  const toggleCheck = (key: string) =>
+    setChecklist((c) => ({ ...c, [key]: !c[key] }));
+
+  const handleStart = () => {
+    if (!startedAt) {
+      setStartedAt(Date.now() - elapsed);
+    } else {
+      setStartedAt(null);
+    }
+  };
+
+  const handleReset = () => {
+    setStartedAt(null);
+    setElapsed(0);
+    setSegIdx(0);
+    setChecklist({});
+    setObjection(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <span className="overline">Live call</span>
+          <h1
+            className="font-display mt-1 text-3xl text-white"
+            style={{ fontVariationSettings: "'opsz' 96" }}
+          >
+            Cockpit
+            <span className="ml-2 align-middle">
+              <Badge
+                tone={payor ? payor.summary.light : "neutral"}
+                className="text-[10px]"
+              >
+                {payor ? payor.summary.light : "no payor"}
+              </Badge>
+            </span>
+          </h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <div
+            className="font-mono rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xl tabular-nums"
+            style={{
+              boxShadow: startedAt
+                ? `0 0 24px ${tone.glow}`
+                : "none",
+              transition: "box-shadow 0.4s",
+            }}
+          >
+            {formatTime(elapsed)}
+          </div>
+          <Button variant={startedAt ? "destructive" : "primary"} onClick={handleStart}>
+            {startedAt ? "Pause" : elapsed > 0 ? "Resume" : "Start call"}
+          </Button>
+          <Button variant="utility" size="sm" onClick={handleReset}>
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      {/* 3-column main grid */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.25fr_1.05fr]">
+        {/* Insurance Intel */}
+        <InsuranceIntel value={payor} onSelect={setPayor} />
+
+        {/* SOP + Segments */}
+        <Card variant="aurora" className="flex flex-col gap-5">
+          <div>
+            <div className="overline mb-3">Segments</div>
+            <div className="grid grid-cols-5 gap-1">
+              {CALL_SEGMENTS.map((s, i) => {
+                const active = i === segIdx;
+                const done = i < segIdx;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSegIdx(i)}
+                    className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-[10px] uppercase tracking-[0.08em] transition ${
+                      active
+                        ? "border-[var(--violet)]/60 bg-[var(--violet)]/[0.08] text-white"
+                        : done
+                          ? "border-white/[0.06] bg-white/[0.015] text-[var(--ink-3)]"
+                          : "border-white/[0.06] bg-white/[0.015] text-[var(--ink-2)] hover:border-white/[0.16]"
+                    }`}
+                  >
+                    <span className="font-display text-base leading-none">
+                      {s.glyph}
+                    </span>
+                    <span className="whitespace-nowrap text-[10px]">{s.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-2 text-[11px] text-[var(--ink-3)]">
+              {activeSegment.name} · {activeSegment.time} · {activeSegment.objectives}
+            </div>
+          </div>
+
+          <div className="border-t border-white/[0.06] pt-4">
+            <div className="overline mb-2">Script</div>
+            <p
+              className="font-display text-[15px] italic leading-relaxed text-white/90"
+              style={{ fontVariationSettings: "'opsz' 72" }}
+            >
+              “{activeSegment.script}”
+            </p>
+          </div>
+
+          <div className="border-t border-white/[0.06] pt-4">
+            <div className="overline mb-2">Checklist</div>
+            <div className="space-y-1.5">
+              {activeSegment.questions.map((q, qi) => {
+                const key = `${activeSegment.id}-${qi}`;
+                const checked = !!checklist[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleCheck(key)}
+                    className="flex w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-white/[0.03]"
+                  >
+                    <span
+                      className={`mt-[3px] flex size-4 shrink-0 items-center justify-center rounded border transition ${
+                        checked
+                          ? "border-[var(--violet)]/60 bg-[var(--violet)]/30"
+                          : "border-white/[0.18] bg-transparent"
+                      }`}
+                    >
+                      {checked && (
+                        <span className="text-[10px] leading-none text-white">
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={
+                        checked ? "text-[var(--ink-3)] line-through" : "text-[var(--ink-2)]"
+                      }
+                    >
+                      {q}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-auto flex items-center gap-2 border-t border-white/[0.06] pt-4">
+            <Button
+              variant="utility"
+              size="sm"
+              onClick={() => setSegIdx((i) => Math.max(0, i - 1))}
+              disabled={segIdx === 0}
+            >
+              ← Back
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() =>
+                setSegIdx((i) => Math.min(CALL_SEGMENTS.length - 1, i + 1))
+              }
+              disabled={segIdx === CALL_SEGMENTS.length - 1}
+            >
+              Next →
+            </Button>
+            <div className="ml-auto text-[11px] uppercase tracking-[0.18em] text-[var(--ink-3)]">
+              {segIdx + 1} / {CALL_SEGMENTS.length}
+            </div>
+          </div>
+        </Card>
+
+        {/* Advisor + Objections */}
+        <div className="flex flex-col gap-4">
+          <Card variant="aurora" className="flex h-full flex-col gap-3">
+            <div className="overline">AI Advisor</div>
+            <AdvisorChat
+              context={{
+                segment: activeSegment.id,
+                segmentName: activeSegment.name,
+                payorName: payor?.name ?? null,
+                payorLight: payor?.summary.light ?? null,
+                checklist,
+                objection,
+              }}
+            />
+          </Card>
+
+          <Card>
+            <div className="overline mb-2">Objection library</div>
+            <div className="space-y-1.5">
+              {OBJECTIONS.map((o) => {
+                const active = objection === o.trigger;
+                return (
+                  <button
+                    key={o.trigger}
+                    type="button"
+                    onClick={() =>
+                      setObjection((prev) => (prev === o.trigger ? null : o.trigger))
+                    }
+                    className={`block w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
+                      active
+                        ? "border-[var(--violet)]/50 bg-[var(--violet)]/[0.06] text-white"
+                        : "border-white/[0.06] bg-white/[0.02] text-[var(--ink-2)] hover:border-white/[0.14]"
+                    }`}
+                  >
+                    <div className="font-medium">“{o.trigger}”</div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-[var(--ink-3)]">
+                      {o.strategy}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {objection && (
+              <p className="mt-3 rounded-lg border border-[var(--periwinkle)]/30 bg-[var(--violet)]/[0.06] px-3 py-2 text-xs italic leading-relaxed text-[var(--ink-2)]">
+                {OBJECTIONS.find((o) => o.trigger === objection)?.script}
+              </p>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* SOP rail */}
+      <Card variant="flat">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="overline">SOP — authorization path</div>
+          <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+            highlighted by current payor light
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-8">
+          {SOP_STEPS.map((s) => {
+            const active = s.step === sopHighlight;
+            return (
+              <div
+                key={s.step}
+                className={`rounded-lg border px-3 py-2 text-xs transition ${
+                  active
+                    ? "border-[var(--violet)]/60 bg-[var(--violet)]/[0.08]"
+                    : "border-white/[0.05] bg-white/[0.015]"
+                }`}
+              >
+                <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+                  step {s.step} · {s.role}
+                </div>
+                <div className="mt-1 text-[12px] text-[var(--ink-2)]">
+                  {s.action}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}

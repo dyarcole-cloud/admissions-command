@@ -1,26 +1,309 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────
+   NBTN Nocturne — design tokens
+   Reference: ~/.claude/skills/nbtn-design + ~/antn-os-hipaa/scaffold/frontend/index.html
+   ───────────────────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --bg-deep: #0a0e1a;
+  --bg-raised: #14182e;
+  --bg-elev: #1a1f3a;
+
+  /* Brand accents */
+  --violet: #a78bfa;
+  --violet-deep: #8b5cf6;
+  --periwinkle: #c4b5fd;
+  --copper: #c2410c;
+  --copper-bright: #ea580c;
+  --gold: #eab308;
+  --gold-bright: #fde047;
+
+  /* Semantic — same in both modes; never use for brand */
+  --success: #10b981;
+  --error: #ef4444;
+  --error-soft: #f87171;
+  --warning: #f59e0b;
+
+  /* Text */
+  --ink: rgba(255, 255, 255, 0.95);
+  --ink-2: rgba(255, 255, 255, 0.7);
+  --ink-3: rgba(255, 255, 255, 0.4);
+  --ink-4: rgba(255, 255, 255, 0.18);
+
+  /* Hairlines */
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-2: rgba(255, 255, 255, 0.14);
+  --hairline-3: rgba(255, 255, 255, 0.22);
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  /* Type */
+  --font-display: var(--font-fraunces), "Fraunces", serif;
+  --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-raised: var(--bg-raised);
+  --color-violet: var(--violet);
+  --color-violet-deep: var(--violet-deep);
+  --color-periwinkle: var(--periwinkle);
+  --color-copper: var(--copper);
+  --color-copper-bright: var(--copper-bright);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-hairline: var(--hairline);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--bg-deep);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: rgba(167, 139, 250, 0.35);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Nocturne vocabulary — hero, buttons, cards, orbs, brain video
+   ───────────────────────────────────────────────────────────── */
+
+/* Hero gradient text — always pair with drop-shadow glow */
+.hero-gradient-text {
+  background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 35%, #ea580c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(167, 139, 250, 0.22));
+}
+
+/* Overline — Inter 600, periwinkle, 11px, 2.2px tracking */
+.overline {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--periwinkle);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* Accent line — 48-56px wide, 2px tall, violet→copper, with glow */
+.accent-line {
+  display: inline-block;
+  width: 56px;
+  height: 2px;
+  background: linear-gradient(90deg, #a78bfa 0%, #ea580c 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.55);
+}
+
+/* Primary button — warm gradient pill, aurora halo */
+.btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  color: #0a0e1a;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 55%, #c2410c 100%);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #a78bfa, #c2410c);
+  filter: blur(14px);
+  opacity: 0.5;
+  z-index: -1;
+  transition: opacity 0.25s;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+}
+.btn-primary:hover::before {
+  opacity: 0.8;
+}
+
+/* Ghost button — transparent, periwinkle border */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--periwinkle);
+  background: transparent;
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-ghost:hover {
+  background: rgba(196, 181, 253, 0.08);
+  border-color: rgba(196, 181, 253, 0.5);
+}
+
+/* Aurora card — gradient border via mask-composite */
+.card-aurora {
+  position: relative;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.card-aurora::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(167, 139, 250, 0.5) 0%,
+    rgba(196, 181, 253, 0.15) 35%,
+    rgba(234, 88, 12, 0.3) 100%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.55;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.card-aurora:hover::before {
+  opacity: 1;
+}
+
+/* Orbs — radial gradients, blurred, drift */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.orb-violet {
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.45) 0%, transparent 70%);
+  top: -120px;
+  right: -120px;
+  animation: orbDrift 32s ease-in-out infinite;
+}
+.orb-copper {
+  width: 460px;
+  height: 460px;
+  background: radial-gradient(circle, rgba(194, 65, 12, 0.35) 0%, transparent 70%);
+  bottom: -160px;
+  left: -100px;
+  animation: orbDrift 40s ease-in-out infinite reverse;
+}
+.orb-periwinkle {
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(196, 181, 253, 0.25) 0%, transparent 70%);
+  top: 40%;
+  left: 35%;
+  animation: orbDrift 28s ease-in-out infinite;
+}
+
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.05); }
+  66% { transform: translate(-30px, 40px) scale(0.95); }
+}
+
+/* Brain video overlay — tints + dark linear for readability */
+.brain-video-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      ellipse at center,
+      rgba(167, 139, 250, 0.18) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse at 80% 20%,
+      rgba(194, 65, 12, 0.12) 0%,
+      transparent 50%
+    ),
+    linear-gradient(180deg, rgba(10, 14, 26, 0.6) 0%, rgba(10, 14, 26, 0.85) 100%);
+  pointer-events: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .orb-violet,
+  .orb-copper,
+  .orb-periwinkle {
+    animation: none;
+  }
+}
+
+/* Mobile safe areas (PWA, notch) */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

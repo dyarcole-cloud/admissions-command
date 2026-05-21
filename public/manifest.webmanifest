@@ -1,0 +1,48 @@
+{
+  "name": "Admissions Command",
+  "short_name": "Admissions Cmd",
+  "description": "Live-call cockpit for behavioral health admissions teams. Insurance intel, clinical assessment, payor playbook, AI coaching.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "categories": ["medical", "productivity", "business"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Cockpit",
+      "short_name": "Cockpit",
+      "description": "Live-call command center",
+      "url": "/app"
+    },
+    {
+      "name": "Pre-Admit Assessment",
+      "short_name": "Pre-Admit",
+      "description": "10-section clinical intake",
+      "url": "/app/preadmit"
+    },
+    {
+      "name": "Payor Engine",
+      "short_name": "Payors",
+      "description": "Insurance playbook",
+      "url": "/app/payors"
+    }
+  ]
+}
