@@ -7,9 +7,13 @@ import { SOP_STEPS } from "@/lib/data/sopSteps";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { InsuranceIntel } from "./InsuranceIntel";
 import { AdvisorChat } from "./AdvisorChat";
+import { AsamScorer } from "./AsamScorer";
+import { CrisisOverlay } from "./CrisisOverlay";
+import { RiskFlagStrip } from "./RiskFlagStrip";
+import { BLANK_ASAM_SCORES, type AsamScores } from "@/lib/data/asam";
+import type { CrisisId } from "@/lib/data/crisisProtocols";
 import type { Payor } from "@/lib/data/payors";
 
 const formatTime = (ms: number) => {
@@ -34,12 +38,15 @@ export function CallCockpit() {
   const [payor, setPayor] = useState<Payor | null>(null);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [objection, setObjection] = useState<string | null>(null);
+  const [asam, setAsam] = useState<AsamScores>(BLANK_ASAM_SCORES);
+  const [crisisOpen, setCrisisOpen] = useState(false);
+  const [crisisId, setCrisisId] = useState<CrisisId | null>(null);
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeSegment = CALL_SEGMENTS[segIdx];
   const tone = segmentTone[activeSegment.tone];
+  const isClinicalSegment = activeSegment.tone === "clinical";
 
-  // Drift-free timer: compute from startedAt, not accumulator
   useEffect(() => {
     if (startedAt) {
       interval.current = setInterval(() => {
@@ -77,11 +84,18 @@ export function CallCockpit() {
     setSegIdx(0);
     setChecklist({});
     setObjection(null);
+    setAsam(BLANK_ASAM_SCORES);
+    setCrisisOpen(false);
+    setCrisisId(null);
+  };
+
+  const openCrisis = (id?: CrisisId) => {
+    setCrisisId(id ?? "si");
+    setCrisisOpen(true);
   };
 
   return (
     <div className="space-y-6">
-      {/* Top header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="overline">Live call</span>
@@ -104,9 +118,7 @@ export function CallCockpit() {
           <div
             className="font-mono rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xl tabular-nums"
             style={{
-              boxShadow: startedAt
-                ? `0 0 24px ${tone.glow}`
-                : "none",
+              boxShadow: startedAt ? `0 0 24px ${tone.glow}` : "none",
               transition: "box-shadow 0.4s",
             }}
           >
@@ -121,12 +133,16 @@ export function CallCockpit() {
         </div>
       </div>
 
-      {/* 3-column main grid */}
+      <RiskFlagStrip
+        scores={asam}
+        payor={payor}
+        crisisOpen={crisisOpen}
+        onOpenCrisis={openCrisis}
+      />
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.25fr_1.05fr]">
-        {/* Insurance Intel */}
         <InsuranceIntel value={payor} onSelect={setPayor} />
 
-        {/* SOP + Segments */}
         <Card variant="aurora" className="flex flex-col gap-5">
           <div>
             <div className="overline mb-3">Segments</div>
@@ -170,44 +186,52 @@ export function CallCockpit() {
             </p>
           </div>
 
-          <div className="border-t border-white/[0.06] pt-4">
-            <div className="overline mb-2">Checklist</div>
-            <div className="space-y-1.5">
-              {activeSegment.questions.map((q, qi) => {
-                const key = `${activeSegment.id}-${qi}`;
-                const checked = !!checklist[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleCheck(key)}
-                    className="flex w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-white/[0.03]"
-                  >
-                    <span
-                      className={`mt-[3px] flex size-4 shrink-0 items-center justify-center rounded border transition ${
-                        checked
-                          ? "border-[var(--violet)]/60 bg-[var(--violet)]/30"
-                          : "border-white/[0.18] bg-transparent"
-                      }`}
-                    >
-                      {checked && (
-                        <span className="text-[10px] leading-none text-white">
-                          ✓
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={
-                        checked ? "text-[var(--ink-3)] line-through" : "text-[var(--ink-2)]"
-                      }
-                    >
-                      {q}
-                    </span>
-                  </button>
-                );
-              })}
+          {isClinicalSegment ? (
+            <div className="border-t border-white/[0.06] pt-4">
+              <AsamScorer scores={asam} onChange={setAsam} />
             </div>
-          </div>
+          ) : (
+            <div className="border-t border-white/[0.06] pt-4">
+              <div className="overline mb-2">Checklist</div>
+              <div className="space-y-1.5">
+                {activeSegment.questions.map((q, qi) => {
+                  const key = `${activeSegment.id}-${qi}`;
+                  const checked = !!checklist[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleCheck(key)}
+                      className="flex w-full items-start gap-3 rounded-lg px-2 py-1.5 text-left text-sm transition hover:bg-white/[0.03]"
+                    >
+                      <span
+                        className={`mt-[3px] flex size-4 shrink-0 items-center justify-center rounded border transition ${
+                          checked
+                            ? "border-[var(--violet)]/60 bg-[var(--violet)]/30"
+                            : "border-white/[0.18] bg-transparent"
+                        }`}
+                      >
+                        {checked && (
+                          <span className="text-[10px] leading-none text-white">
+                            ✓
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={
+                          checked
+                            ? "text-[var(--ink-3)] line-through"
+                            : "text-[var(--ink-2)]"
+                        }
+                      >
+                        {q}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="mt-auto flex items-center gap-2 border-t border-white/[0.06] pt-4">
             <Button
@@ -234,7 +258,6 @@ export function CallCockpit() {
           </div>
         </Card>
 
-        {/* Advisor + Objections */}
         <div className="flex flex-col gap-4">
           <Card variant="aurora" className="flex h-full flex-col gap-3">
             <div className="overline">AI Advisor</div>
@@ -242,7 +265,7 @@ export function CallCockpit() {
               context={{
                 segment: activeSegment.id,
                 segmentName: activeSegment.name,
-                payorName: payor ? (payor.plan || payor.parent) : null,
+                payorName: payor ? payor.plan || payor.parent : null,
                 payorLight: payor?.light ?? null,
                 checklist,
                 objection,
@@ -260,7 +283,9 @@ export function CallCockpit() {
                     key={o.trigger}
                     type="button"
                     onClick={() =>
-                      setObjection((prev) => (prev === o.trigger ? null : o.trigger))
+                      setObjection((prev) =>
+                        prev === o.trigger ? null : o.trigger
+                      )
                     }
                     className={`block w-full rounded-lg border px-3 py-2 text-left text-xs transition ${
                       active
@@ -285,7 +310,6 @@ export function CallCockpit() {
         </div>
       </div>
 
-      {/* SOP rail */}
       <Card variant="flat">
         <div className="mb-3 flex items-center justify-between">
           <div className="overline">SOP — authorization path</div>
@@ -316,6 +340,12 @@ export function CallCockpit() {
           })}
         </div>
       </Card>
+
+      <CrisisOverlay
+        open={crisisOpen}
+        initialId={crisisId}
+        onClose={() => setCrisisOpen(false)}
+      />
     </div>
   );
 }
