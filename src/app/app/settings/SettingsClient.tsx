@@ -19,6 +19,7 @@ import {
   writeAi,
   type AiSettings,
 } from "@/lib/data/aiSettings";
+import { AuditLogViewer } from "./AuditLogViewer";
 
 export function SettingsClient() {
   const [org, setOrg] = useState<OrgSettings>(DEFAULT_ORG);
@@ -454,6 +455,8 @@ export function SettingsClient() {
           </div>
         </div>
       </Card>
+
+      <AuditLogViewer />
 
       {savedAt && (
         <div className="text-right font-mono text-[10px] tabular-nums text-[var(--ink-4)]">

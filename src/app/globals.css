@@ -308,6 +308,53 @@ body {
   }
 }
 
+/* Accessibility — focus management */
+*:focus {
+  outline: none;
+}
+*:focus-visible {
+  outline: 2px solid var(--periwinkle);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--periwinkle);
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: 100;
+  background: var(--bg-deep);
+  color: var(--periwinkle);
+  padding: 12px 20px;
+  border-radius: 0 0 12px 0;
+  border: 1px solid var(--periwinkle);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Print styles — handoff card on A4/Letter
    ───────────────────────────────────────────────────────────── */

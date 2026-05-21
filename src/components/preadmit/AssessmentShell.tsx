@@ -11,6 +11,8 @@ import { HandoffCard } from "./HandoffCard";
 import { AsamScorer } from "@/components/cockpit/AsamScorer";
 import { VoiceMic } from "@/components/app/VoiceMic";
 import { Icd10Picker } from "./Icd10Picker";
+import { appendAuditEntry } from "@/lib/data/auditLog";
+import { asamAcuityLight, recommendLoc } from "@/lib/data/asam";
 import {
   PAA_SECTIONS,
   PAA_SYMPTOMS,
@@ -214,6 +216,20 @@ export function AssessmentShell() {
           }
         | { ok: false; error: string };
       if (j.ok) {
+        const flags = deriveFlags(state);
+        const loc = recommendLoc(state.asam);
+        appendAuditEntry({
+          id: crypto.randomUUID(),
+          assessmentId: (j as { assessmentId?: string }).assessmentId ?? crypto.randomUUID(),
+          submittedAt: Date.now(),
+          redactionCount: j.redactionCount,
+          phiHashes: (j as { phiHashes?: string[] }).phiHashes ?? [],
+          asamMaxDim: Math.max(...Object.values(state.asam)),
+          acuity: asamAcuityLight(state.asam),
+          flagCount: flags.length,
+          loc: loc.level,
+          source: "mock",
+        });
         setState((s) => ({
           ...s,
           status: "submitted",

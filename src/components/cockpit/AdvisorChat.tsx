@@ -100,6 +100,9 @@ export function AdvisorChat({
       <div
         ref={scrollRef}
         className="min-h-[200px] flex-1 space-y-3 overflow-y-auto pr-1"
+        role="log"
+        aria-live="polite"
+        aria-label="AI advisor conversation"
       >
         {messages.map((m, i) => (
           <div

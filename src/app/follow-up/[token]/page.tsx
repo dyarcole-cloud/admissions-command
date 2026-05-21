@@ -4,6 +4,7 @@ import { Logo } from "@/components/brand/Logo";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Orbs } from "@/components/marketing/Orbs";
+import { createT, type Locale } from "@/lib/data/i18n";
 
 export const metadata: Metadata = {
   title: "Your next step",
@@ -36,6 +37,8 @@ export default async function FollowUpPage(props: {
   const contactName = pick(sp, "cn");
   const contactPhone = pick(sp, "cp");
   const note = pick(sp, "note");
+  const lang = (pick(sp, "lang") === "es" ? "es" : "en") as Locale;
+  const t = createT(lang);
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -49,48 +52,45 @@ export default async function FollowUpPage(props: {
         </span>
       </header>
 
-      <section className="relative z-10 mx-auto max-w-3xl space-y-6 px-6 pb-16 md:pb-24">
+      <section className="relative z-10 mx-auto max-w-3xl space-y-6 px-6 pb-16 md:pb-24" lang={lang}>
         <div>
           <span className="accent-line mb-4 block" />
-          <span className="overline">Next step · for {firstName || "you"}</span>
+          <span className="overline">
+            {t("fu.next_step_for")} {firstName || t("fu.you")}
+          </span>
           <h1
             className="font-display mt-3 text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.022em] text-white"
             style={{ fontVariationSettings: "'opsz' 120" }}
           >
-            We&apos;ve got you.{" "}
+            {t("fu.headline_1")}{" "}
             <span
               className="hero-gradient-text italic"
               style={{ fontVariationSettings: "'opsz' 96" }}
             >
-              Here&apos;s what&apos;s next.
+              {t("fu.headline_2")}
             </span>
           </h1>
-          <p className="mt-4 text-base text-[var(--ink-2)]">
-            This page was made for you after our call. Save it, screenshot it,
-            share it with whoever&apos;s helping you through this — partner,
-            parent, friend, sponsor. None of your private health details are on
-            this page on purpose.
-          </p>
+          <p className="mt-4 text-base text-[var(--ink-2)]">{t("fu.intro")}</p>
         </div>
 
         {(date || time || facility) && (
           <Card variant="aurora">
-            <div className="overline">Your appointment</div>
+            <div className="overline">{t("fu.appointment")}</div>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Date
+                  {t("fu.date")}
                 </div>
                 <div
                   className="font-display mt-1 text-2xl text-white"
                   style={{ fontVariationSettings: "'opsz' 96" }}
                 >
-                  {date || "TBD"}
+                  {date || t("fu.tbd")}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Time
+                  {t("fu.time")}
                 </div>
                 <div className="font-mono mt-1 text-2xl tabular-nums text-white">
                   {time || "—"}
@@ -98,10 +98,10 @@ export default async function FollowUpPage(props: {
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-                  Where
+                  {t("fu.where")}
                 </div>
                 <div className="mt-1 text-base text-white">
-                  {facility || "We'll confirm by phone"}
+                  {facility || t("fu.confirm_by_phone")}
                 </div>
               </div>
             </div>
@@ -110,13 +110,13 @@ export default async function FollowUpPage(props: {
 
         {(contactName || contactPhone) && (
           <Card variant="aurora">
-            <div className="overline">Your point of contact</div>
+            <div className="overline">{t("fu.contact")}</div>
             <div className="mt-2 flex flex-wrap items-baseline gap-3">
               <span
                 className="font-display text-xl text-white"
                 style={{ fontVariationSettings: "'opsz' 72" }}
               >
-                {contactName || "Your admissions team"}
+                {contactName || t("fu.admissions_team")}
               </span>
               {contactPhone && (
                 <a
@@ -128,38 +128,36 @@ export default async function FollowUpPage(props: {
               )}
             </div>
             <p className="mt-2 text-sm text-[var(--ink-2)]">
-              Call or text any time. If they&apos;re not available, leave a
-              message — they will get back to you the same day.
+              {t("fu.contact_blurb")}
             </p>
           </Card>
         )}
 
         <Card variant="aurora">
-          <div className="overline mb-2">What to bring</div>
+          <div className="overline mb-2">{t("fu.what_to_bring")}</div>
           <ul className="space-y-2 text-sm text-[var(--ink-2)]">
             {[
-              "Photo ID (driver's license or state ID)",
-              "Insurance card (front and back — phone photo is fine)",
-              "Current medications — bottles in original packaging if possible, or a written list with name + dose + frequency",
-              "A small bag: clothes for 7 days, toiletries (sealed), comfortable shoes",
-              "Phone charger",
-              "Names + phone numbers of people you want us to be able to talk to (parent, partner, sponsor)",
-            ].map((item) => (
-              <li key={item} className="flex items-start gap-2.5">
+              "fu.item_id",
+              "fu.item_insurance",
+              "fu.item_meds",
+              "fu.item_bag",
+              "fu.item_charger",
+              "fu.item_contacts",
+            ].map((key) => (
+              <li key={key} className="flex items-start gap-2.5">
                 <span className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full bg-[var(--periwinkle)]" />
-                <span>{item}</span>
+                <span>{t(key)}</span>
               </li>
             ))}
           </ul>
           <p className="mt-3 text-xs italic text-[var(--ink-3)]">
-            Don&apos;t bring: outside food, alcohol, non-prescribed substances,
-            weapons. We&apos;ll secure valuables on arrival.
+            {t("fu.dont_bring")}
           </p>
         </Card>
 
         {note && (
           <Card variant="aurora">
-            <div className="overline">A note for you</div>
+            <div className="overline">{t("fu.note")}</div>
             <p
               className="font-display mt-2 text-[15px] italic leading-relaxed text-[var(--ink-2)]"
               style={{ fontVariationSettings: "'opsz' 72" }}
@@ -170,38 +168,53 @@ export default async function FollowUpPage(props: {
         )}
 
         <Card variant="flat" className="border-[var(--error)]/30">
-          <div className="overline mb-2">If things get hard before then</div>
+          <div className="overline mb-2">{t("fu.crisis_heading")}</div>
           <ul className="space-y-2 text-sm text-[var(--ink-2)]">
-            <li>
-              <span className="text-white">988</span> — Suicide &amp; Crisis
-              Lifeline. Call or text. 24/7. Free.
-            </li>
-            <li>
-              <span className="text-white">Text HOME to 741741</span> — Crisis
-              Text Line. Useful when voice is hard.
-            </li>
-            <li>
-              <span className="text-white">911</span> — only if you or someone
-              else is in immediate physical danger.
-            </li>
+            <li>{t("fu.crisis_988")}</li>
+            <li>{t("fu.crisis_text")}</li>
+            <li>{t("fu.crisis_911")}</li>
           </ul>
           <p className="mt-3 text-xs italic text-[var(--ink-3)]">
-            You don&apos;t have to white-knuckle it alone between now and your
-            appointment. Use these. We&apos;d rather get a call from a hotline
-            than not see you on intake day.
+            {t("fu.crisis_blurb")}
           </p>
         </Card>
 
         <Card variant="flat">
-          <p className="text-sm text-[var(--ink-2)]">
-            You did the hardest thing already — you called. The rest is logistics.
-            We&apos;re here.
-          </p>
+          <p className="text-sm text-[var(--ink-2)]">{t("fu.close")}</p>
         </Card>
 
-        <p className="text-center font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-4)]">
-          Powered by Northbound Treatment Network · Admissions Command
-        </p>
+        <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.16em] text-[var(--ink-4)]">
+          <span className="font-mono">{t("fu.footer")}</span>
+          <span className="flex gap-2">
+            <Link
+              href={`/follow-up/${token}?${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(sp).flatMap(([k, v]) =>
+                    typeof v === "string" ? [[k, v]] : []
+                  )
+                ),
+                lang: "en",
+              }).toString()}`}
+              className={lang === "en" ? "text-white" : "hover:text-white"}
+            >
+              EN
+            </Link>
+            <span className="text-[var(--ink-4)]">·</span>
+            <Link
+              href={`/follow-up/${token}?${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(sp).flatMap(([k, v]) =>
+                    typeof v === "string" ? [[k, v]] : []
+                  )
+                ),
+                lang: "es",
+              }).toString()}`}
+              className={lang === "es" ? "text-white" : "hover:text-white"}
+            >
+              ES
+            </Link>
+          </span>
+        </div>
       </section>
     </main>
   );

@@ -19,6 +19,11 @@ import type { Payor } from "@/lib/data/payors";
 import { appendLog, type CallOutcome } from "@/lib/data/callLog";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DEMO_SCENARIOS } from "@/lib/data/demoScenarios";
+import {
+  clearActiveCall,
+  writeActiveCall,
+} from "@/lib/data/activeCall";
+import { PaaDraftBanner } from "@/components/app/PaaDraftBanner";
 
 const formatTime = (ms: number) => {
   const total = Math.floor(ms / 1000);
@@ -287,6 +292,8 @@ export function CallCockpit() {
           </Button>
         </div>
       </div>
+
+      <PaaDraftBanner />
 
       <RiskFlagStrip
         scores={asam}

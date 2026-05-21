@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AssessmentShell } from "@/components/preadmit/AssessmentShell";
+import { ActiveCallBanner } from "@/components/app/ActiveCallBanner";
 
 export const metadata: Metadata = { title: "Pre-Admit Assessment" };
 
@@ -21,6 +22,7 @@ export default function PreAdmitPage() {
           runs DEID on PHI before it leaves your device.
         </p>
       </div>
+      <ActiveCallBanner />
       <AssessmentShell />
     </div>
   );

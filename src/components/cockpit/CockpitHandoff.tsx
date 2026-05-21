@@ -155,7 +155,18 @@ export function CockpitHandoff({
               window.open(url, "_blank", "noopener");
             }}
           >
-            Caller follow-up link
+            Caller follow-up (EN)
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              const token = crypto.randomUUID();
+              const url = `${window.location.origin}/follow-up/${token}?lang=es`;
+              navigator.clipboard.writeText(url).catch(() => {});
+              window.open(url, "_blank", "noopener");
+            }}
+          >
+            Caller follow-up (ES)
           </Button>
           <Button variant="utility" size="sm" onClick={onClose} className="ml-auto">
             Close

@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CLAIMS_TIERS } from "@/lib/data/claimsTiers";
+import {
+  pushRecent,
+  readFavorites,
+  readRecent,
+  toggleFavorite,
+} from "@/lib/data/payorPrefs";
 import type { Payor } from "@/lib/data/payors";
 
 type SearchResponse = { ok: true; count: number; total: number; results: Payor[] };
@@ -19,8 +25,30 @@ export function InsuranceIntel({ value, onSelect }: Props) {
   const [results, setResults] = useState<Payor[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState<number | null>(null);
+  const [pinned, setPinned] = useState<Payor[]>([]);
+  const [favs, setFavs] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hydrate recent + favorites and fetch their full Payor records
+  useEffect(() => {
+    const recent = readRecent();
+    const f = readFavorites();
+    setFavs(f);
+    const ids = Array.from(new Set([...f, ...recent])).slice(0, 10);
+    if (ids.length === 0) return;
+    Promise.all(
+      ids.map((id) =>
+        fetch(`/api/payors?q=${encodeURIComponent(id)}&limit=20`)
+          .then((r) => r.json() as Promise<SearchResponse>)
+          .then((j) => (j.ok ? j.results.find((p) => p.id === id) : null))
+          .catch(() => null)
+      )
+    ).then((arr) => {
+      const found = arr.filter((p): p is Payor => p !== null);
+      setPinned(found);
+    });
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -61,6 +89,20 @@ export function InsuranceIntel({ value, onSelect }: Props) {
 
   const tier = value ? CLAIMS_TIERS[value.light] : null;
 
+  const handleSelect = (p: Payor | null) => {
+    if (p) {
+      pushRecent(p.id);
+    }
+    onSelect(p);
+    setQuery("");
+    setResults([]);
+  };
+
+  const handleToggleFav = (id: string) => {
+    const next = toggleFavorite(id);
+    setFavs(next);
+  };
+
   return (
     <Card variant="aurora" className="flex flex-col gap-4">
       <div>
@@ -80,6 +122,59 @@ export function InsuranceIntel({ value, onSelect }: Props) {
           autoComplete="off"
           spellCheck={false}
         />
+        {!value && !query && pinned.length > 0 && (
+          <div className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.02]">
+            <div className="flex items-baseline justify-between px-3 pt-2 pb-1">
+              <span className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+                Pinned + recent
+              </span>
+              <span className="font-mono text-[10px] tabular-nums text-[var(--ink-4)]">
+                {pinned.length}
+              </span>
+            </div>
+            <ul className="divide-y divide-white/[0.04]">
+              {pinned.map((p) => {
+                const isFav = favs.includes(p.id);
+                return (
+                  <li key={p.id} className="group">
+                    <div className="flex w-full items-stretch gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(p)}
+                        className="flex flex-1 items-start justify-between gap-3 px-3 py-2 text-left transition hover:bg-white/[0.03]"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-white">
+                            {p.plan || p.parent}
+                          </div>
+                          <div className="truncate text-[11px] text-[var(--ink-3)]">
+                            {p.parent} · {p.rowCategory}
+                          </div>
+                        </div>
+                        <Badge tone={p.light}>{p.light}</Badge>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFav(p.id)}
+                        aria-label={
+                          isFav ? "Unfavorite this payor" : "Favorite this payor"
+                        }
+                        className={`px-2 text-base transition ${
+                          isFav
+                            ? "text-[var(--gold-bright)]"
+                            : "text-[var(--ink-4)] hover:text-[var(--periwinkle)]"
+                        }`}
+                      >
+                        {isFav ? "★" : "☆"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         {!value && query && (
           <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02]">
             {loading && (
@@ -93,29 +188,44 @@ export function InsuranceIntel({ value, onSelect }: Props) {
               </div>
             )}
             <ul className="divide-y divide-white/[0.04]">
-              {results.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onSelect(p);
-                      setQuery("");
-                      setResults([]);
-                    }}
-                    className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left transition hover:bg-white/[0.03]"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm text-white">
-                        {p.plan || p.parent}
-                      </div>
-                      <div className="truncate text-[11px] text-[var(--ink-3)]">
-                        {p.parent} · {p.rowCategory}
-                      </div>
+              {results.map((p) => {
+                const isFav = favs.includes(p.id);
+                return (
+                  <li key={p.id}>
+                    <div className="flex w-full items-stretch gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(p)}
+                        className="flex flex-1 items-start justify-between gap-3 px-3 py-2 text-left transition hover:bg-white/[0.03]"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm text-white">
+                            {p.plan || p.parent}
+                          </div>
+                          <div className="truncate text-[11px] text-[var(--ink-3)]">
+                            {p.parent} · {p.rowCategory}
+                          </div>
+                        </div>
+                        <Badge tone={p.light}>{p.light}</Badge>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFav(p.id)}
+                        aria-label={
+                          isFav ? "Unfavorite this payor" : "Favorite this payor"
+                        }
+                        className={`px-2 text-base transition ${
+                          isFav
+                            ? "text-[var(--gold-bright)]"
+                            : "text-[var(--ink-4)] hover:text-[var(--periwinkle)]"
+                        }`}
+                      >
+                        {isFav ? "★" : "☆"}
+                      </button>
                     </div>
-                    <Badge tone={p.light}>{p.light}</Badge>
-                  </button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -141,7 +251,25 @@ export function InsuranceIntel({ value, onSelect }: Props) {
               )}
             </div>
             <div className="flex flex-col items-end gap-1">
-              <Badge tone={value.light}>{value.light}</Badge>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleToggleFav(value.id)}
+                  aria-label={
+                    favs.includes(value.id)
+                      ? "Unfavorite this payor"
+                      : "Favorite this payor"
+                  }
+                  className={`text-base transition ${
+                    favs.includes(value.id)
+                      ? "text-[var(--gold-bright)]"
+                      : "text-[var(--ink-4)] hover:text-[var(--periwinkle)]"
+                  }`}
+                >
+                  {favs.includes(value.id) ? "★" : "☆"}
+                </button>
+                <Badge tone={value.light}>{value.light}</Badge>
+              </div>
               {value.confidenceTag && (
                 <span className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-4)]">
                   {value.confidenceTag.replace(" (pre-2026 matrix)", "")}
