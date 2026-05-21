@@ -23,7 +23,13 @@ type Message = {
   content: string;
 };
 
-export function AdvisorChat({ context }: { context: AdvisorContext }) {
+export function AdvisorChat({
+  context,
+  onMessages,
+}: {
+  context: AdvisorContext;
+  onMessages?: (messages: Message[]) => void;
+}) {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -34,6 +40,10 @@ export function AdvisorChat({ context }: { context: AdvisorContext }) {
   ]);
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    onMessages?.(messages);
+  }, [messages, onMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({

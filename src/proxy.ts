@@ -17,7 +17,8 @@ export function proxy(req: NextRequest) {
   if (
     !pathname.startsWith("/app") ||
     pathname === "/app/login" ||
-    pathname.startsWith("/api/")
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/follow-up/")
   ) {
     return NextResponse.next();
   }

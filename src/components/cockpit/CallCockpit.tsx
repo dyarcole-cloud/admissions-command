@@ -13,6 +13,7 @@ import { AsamScorer } from "./AsamScorer";
 import { RiskFlagStrip } from "./RiskFlagStrip";
 import { MiPrompts } from "./MiPrompts";
 import { useCrisis } from "@/components/app/CrisisProvider";
+import { CockpitHandoff } from "./CockpitHandoff";
 import { BLANK_ASAM_SCORES, asamAcuityLight, type AsamScores } from "@/lib/data/asam";
 import type { Payor } from "@/lib/data/payors";
 import { appendLog, type CallOutcome } from "@/lib/data/callLog";
@@ -60,6 +61,10 @@ export function CallCockpit() {
   const [mobileView, setMobileView] = useState<"intel" | "segments" | "advisor">(
     "segments"
   );
+  const [handoffOpen, setHandoffOpen] = useState(false);
+  const [advisorMessages, setAdvisorMessages] = useState<
+    Array<{ role: "user" | "assistant"; content: string }>
+  >([]);
   const crisis = useCrisis();
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
@@ -263,6 +268,9 @@ export function CallCockpit() {
           </Button>
           {elapsed > 5000 && (
             <>
+              <Button variant="utility" size="sm" onClick={() => setHandoffOpen(true)}>
+                Handoff
+              </Button>
               <Button variant="utility" size="sm" onClick={() => logCall("placed")}>
                 Log · Placed
               </Button>
@@ -456,6 +464,7 @@ export function CallCockpit() {
                 alerts: deriveAlerts(asam),
                 asamMaxDim: Math.max(...Object.values(asam)),
               }}
+              onMessages={setAdvisorMessages}
             />
           </Card>
 
@@ -529,6 +538,17 @@ export function CallCockpit() {
         </div>
       </Card>
 
+      <CockpitHandoff
+        open={handoffOpen}
+        onClose={() => setHandoffOpen(false)}
+        payor={payor}
+        asam={asam}
+        segmentsReached={segIdx + 1}
+        alerts={deriveAlerts(asam)}
+        advisorTranscript={advisorMessages}
+        callDurationSec={Math.floor(elapsed / 1000)}
+        objection={objection}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { SafetyFlagsPanel, deriveFlags } from "./SafetyFlags";
 import { HandoffCard } from "./HandoffCard";
 import { AsamScorer } from "@/components/cockpit/AsamScorer";
 import { VoiceMic } from "@/components/app/VoiceMic";
+import { Icd10Picker } from "./Icd10Picker";
 import {
   PAA_SECTIONS,
   PAA_SYMPTOMS,
@@ -823,11 +824,10 @@ export function AssessmentShell() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="mhDx">Other MH / SUD diagnoses</Label>
-                  <Input
-                    id="mhDx"
+                  <Icd10Picker
                     value={state.mhDx}
-                    onChange={(e) => update("mhDx", e.target.value)}
+                    onChange={(v) => update("mhDx", v)}
+                    label="Other MH / SUD diagnoses (ICD-10 picker)"
                   />
                 </div>
               </div>
