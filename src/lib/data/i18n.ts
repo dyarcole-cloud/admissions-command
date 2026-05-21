@@ -1,5 +1,3 @@
-"use client";
-
 export type Locale = "en" | "es";
 
 export const LOCALES: Array<{ id: Locale; label: string; native: string }> = [
