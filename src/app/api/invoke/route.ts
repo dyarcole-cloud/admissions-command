@@ -77,34 +77,70 @@ export async function POST(req: NextRequest) {
 }
 
 function mockAdvisorCoach(p: AdvisorCoachPayload): string {
-  const intro = p.payorName
-    ? `On ${p.payorName} (${p.payorLight}) at segment ${p.segment} — ${p.segmentName}:`
-    : `At segment ${p.segment} — ${p.segmentName}:`;
+  const sections: string[] = [];
 
-  let body = "";
-  if (p.objection) {
-    body = `Caller objection "${p.objection}" — acknowledge first, then offer a concrete next step. Don't rush the validation. If the caller is afraid of cost, lead with the actual OOP estimate based on their plan; if they're afraid of treatment itself, walk them through the first 24 hours.`;
-  } else {
-    switch (p.payorLight) {
-      case "GREEN":
-        body =
-          "This is a GREEN plan — proceed with confidence. Confirm the financial picture in plain numbers, then move the conversation toward an admit date. Don't over-sell; reassure.";
-        break;
-      case "YELLOW":
-        body =
-          "This is a YELLOW plan — build clinical necessity before you discuss admit. Frame the next step as a clinical review, not a hurdle. Warm-transfer to Clinical Director while keeping the caller engaged.";
-        break;
-      case "RED":
-        body =
-          "This is a RED plan — do not over-promise. Hold space for the caller, offer alternatives honestly (in-network referral, IOP, sliding scale). Avoid an admit that becomes a discharge.";
-        break;
-      default:
-        body =
-          "Confirm the payor first — that's the single fastest path to clarity. Once you have the light, the right next move follows. Until then, focus on rapport and the caller's immediate safety.";
-    }
+  // Header line — who, where, how loud
+  const intro = p.payorName
+    ? `On ${p.payorName} (${p.payorLight}) at segment ${p.segment} — ${p.segmentName}.`
+    : `At segment ${p.segment} — ${p.segmentName}.`;
+  sections.push(intro);
+
+  // Clinical alerts top of mind (if any)
+  if (p.alerts && p.alerts.length > 0) {
+    sections.push(
+      `Clinical context:\n${p.alerts.map((a) => `  • ${a}`).join("\n")}`
+    );
   }
 
-  return `${intro}\n\n${body}\n\nYour question: "${p.userMessage}" — start with the smallest concrete commitment the caller will agree to right now.`;
+  // Segment-aware play
+  const segmentPlays: Record<number, string> = {
+    1: "Lead with safety, not script. 'Before anything else — are you safe right now?' Anchor the conversation in their nervous system before pivoting to logistics.",
+    2: "Insurance moves fast here. Get the carrier name, member ID, and a hint at network status. If they don't have the card, ask them to read the prefix off the back.",
+    3: "Clinical phase. Use the ASAM-6 panel on the right — every dimension is a question you've been trained to ask. Don't interrogate; you're collecting their story while triaging level of care.",
+    4: "Facility recommendation. Don't pitch — frame it as 'based on what you told me.' Two or three options max. Difference, not list.",
+    5: "Commitment phase. Tiny yes first. 'Are you free Tuesday?' beats 'Do you want to come in?' Build the staircase.",
+  };
+  sections.push(segmentPlays[p.segment] ?? segmentPlays[1]);
+
+  // Objection or payor-light overlay
+  if (p.objection) {
+    sections.push(
+      `Active objection — "${p.objection}". Mirror, validate, name the underlying concern, then offer one concrete option. Don't argue. Pause longer than feels natural.`
+    );
+  } else if (p.payorLight) {
+    const playByLight: Record<string, string> = {
+      GREEN: "GREEN plan — proceed with confidence. Confirm OOP in plain numbers, move the conversation toward an admit date. Don't over-sell.",
+      YELLOW:
+        "YELLOW plan — build clinical necessity before you discuss admit. Frame the next step as a clinical review, not a hurdle. Warm-transfer to Clinical Director while keeping the caller engaged.",
+      RED: "RED plan — do not over-promise. Hold space, offer alternatives honestly (in-network referral, IOP, sliding scale). Avoid an admit that becomes a discharge.",
+    };
+    sections.push(playByLight[p.payorLight]);
+  }
+
+  // ASAM tilt
+  if (typeof p.asamMaxDim === "number") {
+    if (p.asamMaxDim >= 4)
+      sections.push("ASAM acuity is at ceiling — pause admissions logistics, get clinical / medical engaged before this call ends.");
+    else if (p.asamMaxDim >= 3)
+      sections.push("ASAM acuity is high (≥ 3). Build the case for medically monitored / clinically managed residential, not outpatient.");
+    else if (p.asamMaxDim >= 2)
+      sections.push("ASAM acuity moderate. PHP / IOP is in the conversation; don't assume residential until biomedical and emotional dimensions are checked.");
+  }
+
+  // Conversation memory — light touch
+  if (p.history && p.history.length >= 4) {
+    const lastUserCount = p.history.filter((h) => h.role === "user").length;
+    sections.push(
+      `Note: you've asked ${lastUserCount} question${lastUserCount === 1 ? "" : "s"} so far. Stay with the thread — don't pivot unless the caller does.`
+    );
+  }
+
+  // Direct response to the user's question
+  sections.push(
+    `On "${p.userMessage}" — start with the smallest concrete commitment the caller will agree to right now. Match their language. Don't pitch.`
+  );
+
+  return sections.join("\n\n");
 }
 
 /**

@@ -17,7 +17,10 @@ export type CrisisId =
   | "intox"
   | "violent"
   | "minor"
-  | "medical";
+  | "medical"
+  | "panic"
+  | "dv"
+  | "elder";
 
 export type CrisisStep = {
   label: string;
@@ -239,6 +242,126 @@ export const CRISIS_PROTOCOLS: readonly CrisisProtocol[] = [
       { label: "Childhelp National Hotline", detail: "1-800-422-4453 (4-A-CHILD)" },
       { label: "Local CPS", detail: "If active abuse/neglect concern" },
       { label: "Adolescent-specific LOC", detail: "ASAM 3.5 / 3.3 typically; coordinate with Clinical Director" },
+    ],
+  },
+  {
+    id: "panic",
+    title: "Panic Attack on Call",
+    short: "Panic",
+    severity: "high",
+    trigger:
+      "Caller's breathing accelerates, chest tightness, dissociation, can't get words out. Not a medical emergency in itself — but real and overwhelming.",
+    immediateActions: [
+      "Slow your voice and your breathing. Mirror what you want them to do.",
+      "Don't go clinical right now. Stay relational.",
+      "It's not failure — it's their nervous system trying to keep them alive.",
+    ],
+    steps: [
+      {
+        label: "Co-regulate",
+        script:
+          "I'm right here. We're going to slow down for a second. Just listen to my voice. You don't have to say anything yet.",
+      },
+      {
+        label: "Box breathing (4-4-4-4)",
+        script:
+          "Try this with me. In for four — one, two, three, four. Hold — two, three, four. Out — two, three, four. Hold. Again.",
+      },
+      {
+        label: "Anchor to room",
+        script:
+          "Tell me one thing you can see. Anything. A color, an object. Then one thing you can hear that isn't me.",
+      },
+      {
+        label: "Bridge back",
+        script:
+          "You did that with me. That's the same nervous system that's going to help you walk through treatment. There's nothing wrong with you. When you're ready, we can keep going — or I can call you back in 20 minutes.",
+      },
+    ],
+    resources: [
+      { label: "Box breathing", detail: "Inhale 4, hold 4, exhale 4, hold 4 — visible on phone screens for distance use" },
+      { label: "Crisis Text Line", detail: "Text HOME to 741741 — useful when voice is hard" },
+      { label: "Offer callback", detail: "Honor their nervous system; don't push" },
+    ],
+  },
+  {
+    id: "dv",
+    title: "Suspected Domestic Violence",
+    short: "DV",
+    severity: "high",
+    trigger:
+      "Caller hints at fear of a partner, can't speak freely, is whispering, or references being controlled / monitored.",
+    immediateActions: [
+      "Do NOT name the perpetrator over the phone. They may be listening.",
+      "Use yes/no questions only until you can confirm privacy.",
+      "Never schedule an in-person intake at the caller's home address.",
+    ],
+    steps: [
+      {
+        label: "Open with safety screen",
+        script:
+          "Before we get into anything else — are you somewhere you can speak openly right now? Yes or no is fine.",
+      },
+      {
+        label: "If 'no' — switch to coded",
+        script:
+          "Got it. Just yes or no — are you in immediate physical danger? Is someone with you who you don't want hearing this? Do you want me to call you back at a different number or time?",
+      },
+      {
+        label: "Resource handoff (coded)",
+        script:
+          "I'm going to text you a number. You don't have to call it now. It's the National DV Hotline — 1-800-799-7233 — they can help us figure out the next step safely.",
+      },
+      {
+        label: "Plan transport carefully",
+        script:
+          "When we get to intake — let's plan around safety. Not your home address. Tell me a place that feels safe to be picked up from, or call me from there when you're ready.",
+      },
+    ],
+    resources: [
+      { label: "National DV Hotline", detail: "1-800-799-7233 (or text START to 88788)" },
+      { label: "Local DV shelter", detail: "Coordinate intake transport through them, not the home" },
+      { label: "Safety planning resource", detail: "thehotline.org/plan-for-safety" },
+    ],
+  },
+  {
+    id: "elder",
+    title: "Suspected Elder Abuse / Neglect",
+    short: "Elder",
+    severity: "high",
+    trigger:
+      "Older adult caller (or caller about an older adult) describes financial exploitation, neglect, isolation, or physical harm in a caregiving context.",
+    immediateActions: [
+      "Mandated reporting: most states require APS notification on reasonable suspicion. Know your state.",
+      "Don't promise confidentiality on this.",
+      "Confirm whether the alleged perpetrator is the caregiver / has access to the phone.",
+    ],
+    steps: [
+      {
+        label: "Open with respect + safety",
+        script:
+          "Thank you for trusting me with this. Before anything else — are you safe right now? Is the person who's been hurting you / your mom / your dad in the room?",
+      },
+      {
+        label: "Clarify scope",
+        script:
+          "Can you tell me what's been happening? Is this physical, financial, emotional, or about basic care like food and medicine?",
+      },
+      {
+        label: "State the duty",
+        script:
+          "I have to be honest — for someone older or vulnerable, I'm required to make a report so an investigator can check in. I'd rather make that call together than around you. Are you okay with that?",
+      },
+      {
+        label: "Bridge to APS + treatment",
+        script:
+          "Let's get APS engaged so they can keep your loved one safe — and let's also talk about the treatment side. Those are two different teams, both useful.",
+      },
+    ],
+    resources: [
+      { label: "Eldercare Locator", detail: "1-800-677-1116 — APS routing by zip" },
+      { label: "National Center on Elder Abuse", detail: "ncea.acl.gov" },
+      { label: "Adult Protective Services (state)", detail: "Variable; mandated reporting threshold differs by state" },
     ],
   },
   {

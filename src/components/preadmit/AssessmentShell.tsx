@@ -9,6 +9,7 @@ import { Screener } from "./Screener";
 import { SafetyFlagsPanel, deriveFlags } from "./SafetyFlags";
 import { HandoffCard } from "./HandoffCard";
 import { AsamScorer } from "@/components/cockpit/AsamScorer";
+import { VoiceMic } from "@/components/app/VoiceMic";
 import {
   PAA_SECTIONS,
   PAA_SYMPTOMS,
@@ -1054,7 +1055,23 @@ export function AssessmentShell() {
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label htmlFor="repNotes">Rep notes</Label>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <Label htmlFor="repNotes" className="mb-0">
+                        Rep notes
+                      </Label>
+                      <VoiceMic
+                        onAppend={(t) =>
+                          update(
+                            "repNotes",
+                            state.repNotes +
+                              (state.repNotes.endsWith(" ") || !state.repNotes
+                                ? ""
+                                : " ") +
+                              t
+                          )
+                        }
+                      />
+                    </div>
                     <Textarea
                       id="repNotes"
                       rows={3}

@@ -24,6 +24,21 @@ const formatTime = (ms: number) => {
   return `${m}:${s}`;
 };
 
+function deriveAlerts(s: AsamScores): string[] {
+  const out: string[] = [];
+  if (s.intox >= 4) out.push("Acute intoxication risk — medically managed detox indicated");
+  else if (s.intox >= 3) out.push("Severe withdrawal risk — monitored detox required");
+  else if (s.intox >= 2) out.push("Moderate withdrawal anticipated");
+  if (s.emotional >= 4) out.push("Acute psychiatric emergency — engage clinical NOW");
+  else if (s.emotional >= 3) out.push("Severe MH acuity — SI/HI screen, escalate to Clinical Director");
+  if (s.biomed >= 4) out.push("Unstable medical — likely inpatient medical care needed");
+  else if (s.biomed >= 3) out.push("Significant biomedical concerns — coordinate with medical");
+  if (s.environment >= 3) out.push("Unsafe / unstable environment — discharge planning matters");
+  if (s.readiness >= 3) out.push("Low readiness — MI engagement essential, expect ambivalence");
+  if (s.relapse >= 3) out.push("Imminent relapse risk — environment-aware planning");
+  return out;
+}
+
 const segmentTone: Record<string, { glow: string; ring: string }> = {
   rapport: { glow: "rgba(167,139,250,0.55)", ring: "var(--violet)" },
   data: { glow: "rgba(196,181,253,0.55)", ring: "var(--periwinkle)" },
@@ -352,6 +367,8 @@ export function CallCockpit() {
                 payorLight: payor?.light ?? null,
                 checklist,
                 objection,
+                alerts: deriveAlerts(asam),
+                asamMaxDim: Math.max(...Object.values(asam)),
               }}
             />
           </Card>

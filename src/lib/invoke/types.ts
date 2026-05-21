@@ -7,6 +7,8 @@ export type AdvisorCoachPayload = {
   payorLight: Light | null;
   checklist: Record<string, boolean>;
   objection: string | null;
+  alerts?: string[];
+  asamMaxDim?: number;
   userMessage: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
 };

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
+import { VoiceMic } from "@/components/app/VoiceMic";
 import type { Light } from "@/lib/utils";
 
 export type AdvisorContext = {
@@ -12,6 +13,8 @@ export type AdvisorContext = {
   payorLight: Light | null;
   checklist: Record<string, boolean>;
   objection: string | null;
+  alerts?: string[];
+  asamMaxDim?: number;
 };
 
 type Message = {
@@ -54,7 +57,7 @@ export function AdvisorChat({ context }: { context: AdvisorContext }) {
           payload: {
             ...context,
             userMessage: trimmed,
-            history: next,
+            history: next.slice(-8),
           },
         }),
       });
@@ -129,9 +132,12 @@ export function AdvisorChat({ context }: { context: AdvisorContext }) {
             }
           }}
         />
-        <div className="flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-4)]">
-            ⌘/Ctrl + Enter to send
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <VoiceMic onAppend={(t) => setInput((s) => s + (s.endsWith(" ") || !s ? "" : " ") + t)} />
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-4)]">
+              ⌘/Ctrl + Enter to send
+            </div>
           </div>
           <Button size="sm" onClick={send} disabled={busy || !input.trim()}>
             {busy ? "Thinking…" : "Send"}
