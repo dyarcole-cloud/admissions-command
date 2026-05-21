@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { VoiceMic } from "@/components/app/VoiceMic";
+import { aiHeaders } from "@/lib/data/aiSettings";
 import type { Light } from "@/lib/utils";
 
 export type AdvisorContext = {
@@ -51,7 +52,7 @@ export function AdvisorChat({ context }: { context: AdvisorContext }) {
     try {
       const res = await fetch("/api/invoke", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...aiHeaders() },
         body: JSON.stringify({
           op: "advisor.coach",
           payload: {

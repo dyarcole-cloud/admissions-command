@@ -5,6 +5,7 @@ import { BrainVideo } from "@/components/marketing/BrainVideo";
 import { CrisisProvider } from "@/components/app/CrisisProvider";
 import { CrisisFab } from "@/components/app/CrisisFab";
 import { Scratchpad } from "@/components/app/Scratchpad";
+import { OnboardingTour } from "@/components/app/OnboardingTour";
 
 export default function AppLayout({
   children,
@@ -17,6 +18,7 @@ export default function AppLayout({
       <BrainVideo opacity={0.18} />
       <CrisisFab />
       <Scratchpad />
+      <OnboardingTour />
       {/* Sidebar (desktop) + content */}
       <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
         <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-white/[0.06] bg-[var(--bg-deep)]/70 px-5 py-6 backdrop-blur-xl md:flex">

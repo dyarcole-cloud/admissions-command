@@ -20,5 +20,13 @@ export type InvokeRequest =
   | { op: "paa.submit"; payload: { assessment: unknown; recipients: { clinicalDir: string; medDir?: string } } };
 
 export type InvokeResponse =
-  | { ok: true; text?: string; modelLatencyMs?: number; [key: string]: unknown }
+  | {
+      ok: true;
+      text?: string;
+      modelLatencyMs?: number;
+      model?: string;
+      source?: string;
+      error?: string;
+      [key: string]: unknown;
+    }
   | { ok: false; error: string };

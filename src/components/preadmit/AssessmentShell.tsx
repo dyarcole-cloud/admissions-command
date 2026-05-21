@@ -90,34 +90,83 @@ function Pills({
   );
 }
 
+function isDraftMeaningful(s: PaaState): boolean {
+  if (s.name || s.dob || s.address || s.presentingFactor) return true;
+  if (s.repNotes) return true;
+  if (s.symptoms && Object.values(s.symptoms).some(Boolean)) return true;
+  if (s.substances && Object.keys(s.substances).length > 0) {
+    if (
+      Object.values(s.substances).some(
+        (v) => v?.frequency || v?.lastUse || v?.amount
+      )
+    )
+      return true;
+  }
+  if (s.asam && Object.values(s.asam).some((n) => n > 0)) return true;
+  if (
+    (s.phq9 && Object.keys(s.phq9).length > 0) ||
+    (s.gad7 && Object.keys(s.gad7).length > 0) ||
+    (s.cssrs && Object.keys(s.cssrs).length > 0)
+  )
+    return true;
+  return false;
+}
+
+type LoadStatus =
+  | { status: "loading" }
+  | { status: "ready" }
+  | { status: "draft-found"; draft: PaaState };
+
 export function AssessmentShell() {
   const [state, setState] = useState<PaaState>(() => blankPaa());
   const [sectionIdx, setSectionIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [loadStatus, setLoadStatus] = useState<LoadStatus>({ status: "loading" });
 
-  // Hydrate from localStorage on mount
+  // Hydrate from localStorage on mount — prompts user before loading
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as PaaState;
-        setState({ ...blankPaa(), ...parsed });
+        const merged = { ...blankPaa(), ...parsed };
+        if (isDraftMeaningful(merged)) {
+          setLoadStatus({ status: "draft-found", draft: merged });
+          return;
+        }
+        setState(merged);
       }
     } catch {}
+    setLoadStatus({ status: "ready" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist on change
+  const resumeDraft = () => {
+    if (loadStatus.status !== "draft-found") return;
+    setState(loadStatus.draft);
+    setLoadStatus({ status: "ready" });
+  };
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+    setState(blankPaa());
+    setLoadStatus({ status: "ready" });
+  };
+
+  // Persist on change — only when the user has committed to this draft
   useEffect(() => {
     if (state.status === "submitted") return;
+    if (loadStatus.status !== "ready") return;
     try {
       localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify({ ...state, lastUpdated: Date.now() })
       );
     } catch {}
-  }, [state]);
+  }, [state, loadStatus.status]);
 
   const update = <K extends keyof PaaState>(key: K, value: PaaState[K]) =>
     setState((s) => ({ ...s, [key]: value }));
@@ -194,6 +243,44 @@ export function AssessmentShell() {
   };
 
   const sectionId = PAA_SECTIONS[sectionIdx].id;
+
+  // Resume-draft prompt
+  if (loadStatus.status === "draft-found") {
+    const d = loadStatus.draft;
+    const filledSections = [
+      d.name && "Demographics",
+      d.presentingFactor && "Presenting",
+      Object.values(d.substances).some(
+        (v) => v?.frequency || v?.lastUse || v?.amount
+      ) && "Substance",
+      (Object.keys(d.phq9).length > 0 || Object.keys(d.gad7).length > 0 || Object.keys(d.cssrs).length > 0) && "Safety screeners",
+      Object.values(d.asam).some((n) => n > 0) && "ASAM",
+    ].filter(Boolean) as string[];
+
+    return (
+      <Card variant="aurora" className="space-y-4">
+        <div className="overline">Draft in progress</div>
+        <h2
+          className="font-display text-2xl text-white"
+          style={{ fontVariationSettings: "'opsz' 96" }}
+        >
+          Resume where you left off?
+        </h2>
+        <p className="text-sm text-[var(--ink-2)]">
+          {filledSections.length > 0
+            ? `You have an unfinished assessment with progress in ${filledSections.join(", ")}.`
+            : "You have an unfinished assessment draft saved on this device."}{" "}
+          Last updated {new Date(d.lastUpdated).toLocaleString()}.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={resumeDraft}>Resume draft</Button>
+          <Button variant="ghost" onClick={discardDraft}>
+            Start fresh (discard draft)
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   // Submitted view: show handoff card with redacted summary
   if (state.status === "submitted") {

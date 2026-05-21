@@ -12,16 +12,88 @@ import {
   type ImportedPayor,
   type OrgSettings,
 } from "@/lib/data/orgSettings";
+import {
+  DEFAULT_AI_SETTINGS,
+  MODELS,
+  readAi,
+  writeAi,
+  type AiSettings,
+} from "@/lib/data/aiSettings";
 
 export function SettingsClient() {
   const [org, setOrg] = useState<OrgSettings>(DEFAULT_ORG);
+  const [ai, setAi] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<
+    null | { ok: true; ms: number; model: string } | { ok: false; error: string }
+  >(null);
 
   useEffect(() => {
     setOrg(readOrg());
+    setAi(readAi());
   }, []);
+
+  const updateAi = <K extends keyof AiSettings>(k: K, v: AiSettings[K]) =>
+    setAi((s) => {
+      const next = { ...s, [k]: v };
+      writeAi(next);
+      setSavedAt(Date.now());
+      setAiTestResult(null);
+      return next;
+    });
+
+  const testAi = async () => {
+    setAiTesting(true);
+    setAiTestResult(null);
+    const start = Date.now();
+    try {
+      const r = await fetch("/api/invoke", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-anthropic-key": ai.apiKey,
+          "x-anthropic-model": ai.model,
+        },
+        body: JSON.stringify({
+          op: "advisor.coach",
+          payload: {
+            segment: 1,
+            segmentName: "Rapid Rapport",
+            payorName: null,
+            payorLight: null,
+            checklist: {},
+            objection: null,
+            userMessage: "Ping — just verifying the API key is live. Reply with a single sentence about Motivational Interviewing.",
+            history: [],
+          },
+        }),
+      });
+      const j = await r.json();
+      if (j.ok && j.source === "anthropic-byok") {
+        setAiTestResult({
+          ok: true,
+          ms: Date.now() - start,
+          model: j.model || ai.model,
+        });
+      } else {
+        setAiTestResult({
+          ok: false,
+          error:
+            j.error ||
+            (j.source === "fallback"
+              ? "Key was rejected by Anthropic — fallback served"
+              : "Anthropic call was not made; check key + model"),
+        });
+      }
+    } catch (e) {
+      setAiTestResult({ ok: false, error: (e as Error).message });
+    } finally {
+      setAiTesting(false);
+    }
+  };
 
   const facilitiesText = useMemo(
     () => org.facilities.join(", "),
@@ -204,6 +276,98 @@ export function SettingsClient() {
           </div>
         </Card>
       </div>
+
+      <Card variant="aurora" className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <div className="overline">AI Advisor — bring your own key</div>
+            <p className="mt-0.5 text-[11px] text-[var(--ink-3)]">
+              Drop in your Anthropic API key to switch the advisor from the
+              built-in mock to real Claude. Key lives in localStorage on this
+              device, sent server-side per request, never persisted.
+            </p>
+          </div>
+          <Badge tone={ai.enabled && ai.apiKey ? "success" : "neutral"}>
+            {ai.enabled && ai.apiKey ? "Live" : "Mock"}
+          </Badge>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <Label htmlFor="anthKey">Anthropic API key</Label>
+            <Input
+              id="anthKey"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="sk-ant-api03-…"
+              value={ai.apiKey}
+              onChange={(e) => updateAi("apiKey", e.target.value)}
+            />
+            <p className="mt-1 text-[10px] text-[var(--ink-4)]">
+              console.anthropic.com → Settings → API Keys
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="anthModel">Model</Label>
+            <select
+              id="anthModel"
+              value={ai.model}
+              onChange={(e) => updateAi("model", e.target.value)}
+              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-sm text-white outline-none focus:border-[var(--periwinkle)]/40 focus:ring-2 focus:ring-[var(--violet)]/20"
+            >
+              {MODELS.map((m) => (
+                <option key={m.id} value={m.id} className="bg-[var(--bg-deep)]">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[10px] text-[var(--ink-4)]">
+              Opus for the hardest calls, Haiku for fast batch coaching
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => updateAi("enabled", !ai.enabled)}
+            disabled={!ai.apiKey}
+            className={`rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] transition ${
+              ai.enabled && ai.apiKey
+                ? "border-[var(--success)]/60 bg-[var(--success)]/[0.10] text-[var(--success)]"
+                : "border-white/[0.08] bg-white/[0.02] text-[var(--ink-2)] hover:border-white/[0.18]"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            {ai.enabled ? "Enabled" : "Disabled"}
+          </button>
+          <Button
+            size="sm"
+            variant="utility"
+            onClick={testAi}
+            disabled={!ai.apiKey || aiTesting}
+          >
+            {aiTesting ? "Testing…" : "Test connection"}
+          </Button>
+          {aiTestResult && (
+            <span
+              className={`text-xs ${
+                aiTestResult.ok
+                  ? "text-[var(--success)]"
+                  : "text-[var(--error-soft)]"
+              }`}
+            >
+              {aiTestResult.ok
+                ? `✓ ${aiTestResult.model} responded in ${aiTestResult.ms}ms`
+                : `✗ ${aiTestResult.error}`}
+            </span>
+          )}
+        </div>
+        <p className="text-[10px] text-[var(--ink-4)]">
+          When a Lambda + Bedrock backbone is configured (LAMBDA_INVOKE_URL on
+          the server), it takes precedence over BYOK — tenants don't need their
+          own keys. BYOK is the local-dev / pilot / "test before buying"
+          mode.
+        </p>
+      </Card>
 
       <Card variant="aurora">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
+import Anthropic from "@anthropic-ai/sdk";
 import type {
   AdvisorCoachPayload,
   InvokeRequest,
@@ -11,8 +12,23 @@ export const runtime = "nodejs";
 const LAMBDA_URL = process.env.LAMBDA_INVOKE_URL;
 const LAMBDA_TOKEN = process.env.LAMBDA_INVOKE_TOKEN;
 
+const ADVISOR_SYSTEM_PROMPT = `You are the AI Advisor inside Admissions Command, a live-call cockpit for behavioral health admissions reps. You coach the rep — not the caller. Output is read by the rep in real time during the call.
+
+Voice & rules:
+- Speak directly to the rep. Short paragraphs. No headers. No bullets unless they add information.
+- Trauma-informed, MI-fluent (OARS). Match caller energy; don't pitch.
+- Never minimize ("it'll get better"). Never problem-solve a feeling.
+- For RED payor plans, never over-promise. Offer alternatives honestly.
+- For active SI/HI/medical emergency, hand off to clinical — don't carry the weight alone.
+- ASAM-aware: factor dimensional acuity into LOC reasoning.
+- Length: 80–180 words per turn. Tighter is better.
+
+Refuse: clinical determinations the rep alone shouldn't make, anything that bypasses Clinical / Medical Director routing on flagged cases, anything that promises an admit you haven't confirmed.`;
+
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as InvokeRequest;
+  const userKey = req.headers.get("x-anthropic-key");
+  const userModel = req.headers.get("x-anthropic-model") ?? "claude-opus-4-7";
 
   if (LAMBDA_URL) {
     try {
@@ -35,10 +51,53 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.op === "advisor.coach") {
+    // BYOK path — real Anthropic call when user has configured a key
+    if (userKey && userKey.length > 20) {
+      try {
+        const start = Date.now();
+        const client = new Anthropic({ apiKey: userKey });
+        const promptUser = renderCoachPrompt(body.payload);
+        const result = await client.messages.create({
+          model: userModel,
+          max_tokens: 600,
+          system: ADVISOR_SYSTEM_PROMPT,
+          messages: [
+            ...body.payload.history.slice(-8).map((h) => ({
+              role: h.role === "user" ? ("user" as const) : ("assistant" as const),
+              content: h.content,
+            })),
+            { role: "user" as const, content: promptUser },
+          ],
+        });
+        const text =
+          result.content
+            .filter((b) => b.type === "text")
+            .map((b) => (b as { text: string }).text)
+            .join("\n") || "(no response)";
+        return NextResponse.json<InvokeResponse>({
+          ok: true,
+          text,
+          modelLatencyMs: Date.now() - start,
+          model: userModel,
+          source: "anthropic-byok",
+        });
+      } catch (e) {
+        const msg = (e as Error).message;
+        return NextResponse.json<InvokeResponse>({
+          ok: true,
+          text: `[Anthropic key failed — falling back to local coaching]\n\n${mockAdvisorCoach(body.payload)}`,
+          modelLatencyMs: 0,
+          model: "fallback-mock",
+          source: "fallback",
+          error: msg,
+        });
+      }
+    }
     return NextResponse.json<InvokeResponse>({
       ok: true,
       text: mockAdvisorCoach(body.payload),
       modelLatencyMs: 240,
+      source: "mock",
     });
   }
 
@@ -74,6 +133,25 @@ export async function POST(req: NextRequest) {
     { ok: false, error: `op '${body.op}' has no fallback handler` },
     { status: 501 }
   );
+}
+
+function renderCoachPrompt(p: AdvisorCoachPayload): string {
+  const lines: string[] = [];
+  lines.push(`SEGMENT: ${p.segment} — ${p.segmentName}`);
+  if (p.payorName) lines.push(`PAYOR: ${p.payorName} · LIGHT ${p.payorLight}`);
+  if (p.objection) lines.push(`ACTIVE OBJECTION: "${p.objection}"`);
+  if (typeof p.asamMaxDim === "number") {
+    lines.push(`ASAM max dim score: ${p.asamMaxDim}/4`);
+  }
+  if (p.alerts && p.alerts.length > 0) {
+    lines.push("CLINICAL ALERTS:");
+    p.alerts.forEach((a) => lines.push(`  - ${a}`));
+  }
+  const checked = Object.entries(p.checklist).filter(([, v]) => v).length;
+  if (checked > 0) lines.push(`CHECKLIST: ${checked} items confirmed for this segment`);
+  lines.push("");
+  lines.push(`REP MESSAGE: ${p.userMessage}`);
+  return lines.join("\n");
 }
 
 function mockAdvisorCoach(p: AdvisorCoachPayload): string {
