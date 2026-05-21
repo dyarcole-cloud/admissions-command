@@ -22,22 +22,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (
-    process.env.DEMO_MODE === "true" ||
-    process.env.NEXT_PUBLIC_DEMO_MODE === "true"
-  ) {
-    return NextResponse.next();
-  }
-
-  const session = req.cookies.get("__session")?.value;
-  if (session && session.length > 8) {
-    return NextResponse.next();
-  }
-
-  const url = req.nextUrl.clone();
-  url.pathname = "/app/login";
-  url.searchParams.set("from", pathname);
-  return NextResponse.redirect(url);
+  // v0 preview — all routes open. Firebase Auth + session cookie gate
+  // ships in week 2; until then the proxy just records the intended path
+  // so we can deep-link the right destination once auth flips on.
+  return NextResponse.next();
 }
 
 export const config = {
