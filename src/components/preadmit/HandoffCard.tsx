@@ -9,6 +9,22 @@ import type { SafetyFlag } from "./SafetyFlags";
 import { recommendLoc, asamAcuityLight } from "@/lib/data/asam";
 import { totalScore, bandFor, PHQ9, GAD7 } from "@/lib/data/screeners";
 
+const PHI_FIELDS: Array<keyof PaaState> = [
+  "name",
+  "dob",
+  "address",
+  "contactValue",
+  "conservatorContact",
+];
+
+function sanitizeForNarrative(state: PaaState): Partial<PaaState> {
+  const copy: Partial<PaaState> = { ...state };
+  for (const f of PHI_FIELDS) {
+    if (typeof copy[f] === "string") (copy as Record<string, unknown>)[f] = "";
+  }
+  return copy;
+}
+
 type Props = {
   state: PaaState;
   flags: SafetyFlag[];
@@ -16,6 +32,33 @@ type Props = {
 
 export function HandoffCard({ state, flags }: Props) {
   const [copied, setCopied] = useState(false);
+  const [narrative, setNarrative] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+
+  const generateNarrative = async () => {
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const r = await fetch("/api/invoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          op: "advisor.narrative",
+          payload: { assessment: sanitizeForNarrative(state) },
+        }),
+      });
+      const j = (await r.json()) as
+        | { ok: true; narrative: string }
+        | { ok: false; error: string };
+      if (j.ok) setNarrative(j.narrative);
+      else setGenError(j.error);
+    } catch (e) {
+      setGenError((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const loc = recommendLoc(state.asam);
   const acuity = asamAcuityLight(state.asam);
@@ -48,7 +91,7 @@ export function HandoffCard({ state, flags }: Props) {
   };
 
   return (
-    <Card variant="aurora" className="space-y-5 print:break-inside-avoid">
+    <Card variant="aurora" className="handoff-print space-y-5 print:break-inside-avoid">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="overline">Clinical Handoff</div>
@@ -131,6 +174,42 @@ export function HandoffCard({ state, flags }: Props) {
           </ul>
         </Card>
       )}
+
+      <Card variant="flat">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <div className="overline">Clinical narrative</div>
+          {narrative && (
+            <button
+              type="button"
+              onClick={generateNarrative}
+              disabled={generating}
+              className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-3)] hover:text-white print:hidden"
+            >
+              {generating ? "regenerating…" : "regenerate"}
+            </button>
+          )}
+        </div>
+        {narrative ? (
+          <p className="font-display whitespace-pre-line text-[14px] leading-relaxed text-[var(--ink-2)]" style={{ fontVariationSettings: "'opsz' 72" }}>
+            {narrative}
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3 print:hidden">
+            <Button onClick={generateNarrative} size="sm" disabled={generating}>
+              {generating ? "Generating…" : "Generate clinical narrative"}
+            </Button>
+            <span className="text-[11px] text-[var(--ink-3)]">
+              Biopsychosocial paragraph from the redacted assessment. PHI fields
+              stripped before send.
+            </span>
+          </div>
+        )}
+        {genError && (
+          <p className="mt-2 rounded-lg border border-[var(--error)]/30 bg-[var(--error)]/[0.06] px-3 py-2 text-xs text-[var(--error-soft)] print:hidden">
+            {genError}
+          </p>
+        )}
+      </Card>
 
       <Card variant="flat">
         <div className="overline mb-2">ASAM dimensions</div>

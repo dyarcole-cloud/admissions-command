@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { AppNav, AppMobileNav } from "@/components/app/AppNav";
 import { BrainVideo } from "@/components/marketing/BrainVideo";
+import { CrisisProvider } from "@/components/app/CrisisProvider";
+import { CrisisFab } from "@/components/app/CrisisFab";
 
 export default function AppLayout({
   children,
@@ -9,8 +11,10 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
+    <CrisisProvider>
     <div className="relative min-h-screen overflow-hidden">
       <BrainVideo opacity={0.18} />
+      <CrisisFab />
       {/* Sidebar (desktop) + content */}
       <div className="relative z-10 flex min-h-screen flex-col md:flex-row">
         <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r border-white/[0.06] bg-[var(--bg-deep)]/70 px-5 py-6 backdrop-blur-xl md:flex">
@@ -42,5 +46,6 @@ export default function AppLayout({
         <AppMobileNav />
       </div>
     </div>
+    </CrisisProvider>
   );
 }

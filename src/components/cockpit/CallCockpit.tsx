@@ -10,11 +10,10 @@ import { Button } from "@/components/ui/button";
 import { InsuranceIntel } from "./InsuranceIntel";
 import { AdvisorChat } from "./AdvisorChat";
 import { AsamScorer } from "./AsamScorer";
-import { CrisisOverlay } from "./CrisisOverlay";
 import { RiskFlagStrip } from "./RiskFlagStrip";
 import { MiPrompts } from "./MiPrompts";
+import { useCrisis } from "@/components/app/CrisisProvider";
 import { BLANK_ASAM_SCORES, asamAcuityLight, type AsamScores } from "@/lib/data/asam";
-import type { CrisisId } from "@/lib/data/crisisProtocols";
 import type { Payor } from "@/lib/data/payors";
 import { appendLog, type CallOutcome } from "@/lib/data/callLog";
 
@@ -41,8 +40,10 @@ export function CallCockpit() {
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [objection, setObjection] = useState<string | null>(null);
   const [asam, setAsam] = useState<AsamScores>(BLANK_ASAM_SCORES);
-  const [crisisOpen, setCrisisOpen] = useState(false);
-  const [crisisId, setCrisisId] = useState<CrisisId | null>(null);
+  const [mobileView, setMobileView] = useState<"intel" | "segments" | "advisor">(
+    "segments"
+  );
+  const crisis = useCrisis();
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeSegment = CALL_SEGMENTS[segIdx];
@@ -87,8 +88,7 @@ export function CallCockpit() {
     setChecklist({});
     setObjection(null);
     setAsam(BLANK_ASAM_SCORES);
-    setCrisisOpen(false);
-    setCrisisId(null);
+    crisis.closeCrisis();
   };
 
   const logCall = (outcome: CallOutcome) => {
@@ -125,10 +125,7 @@ export function CallCockpit() {
     handleReset();
   };
 
-  const openCrisis = (id?: CrisisId) => {
-    setCrisisId(id ?? "si");
-    setCrisisOpen(true);
-  };
+  const openCrisis = crisis.openCrisis;
 
   return (
     <div className="space-y-6">
@@ -185,13 +182,47 @@ export function CallCockpit() {
       <RiskFlagStrip
         scores={asam}
         payor={payor}
-        crisisOpen={crisisOpen}
+        crisisOpen={crisis.open}
         onOpenCrisis={openCrisis}
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.25fr_1.05fr]">
-        <InsuranceIntel value={payor} onSelect={setPayor} />
+      {/* Mobile/tablet column switcher — desktop shows all three side by side */}
+      <div className="flex gap-1.5 xl:hidden">
+        {(
+          [
+            { id: "intel", label: "Insurance" },
+            { id: "segments", label: "Segments" },
+            { id: "advisor", label: "Advisor" },
+          ] as const
+        ).map((t) => {
+          const active = mobileView === t.id;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setMobileView(t.id)}
+              className={`flex-1 rounded-xl border px-3 py-2 text-xs uppercase tracking-[0.12em] transition ${
+                active
+                  ? "border-[var(--violet)]/60 bg-[var(--violet)]/[0.10] text-white"
+                  : "border-white/[0.06] bg-white/[0.02] text-[var(--ink-2)] hover:border-white/[0.18]"
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.05fr_1.25fr_1.05fr]">
+        <div
+          className={`xl:block ${mobileView === "intel" ? "block" : "hidden"}`}
+        >
+        <InsuranceIntel value={payor} onSelect={setPayor} />
+        </div>
+
+        <div
+          className={`xl:block ${mobileView === "segments" ? "block" : "hidden"}`}
+        >
         <Card variant="aurora" className="flex flex-col gap-5">
           <div>
             <div className="overline mb-3">Segments</div>
@@ -306,8 +337,11 @@ export function CallCockpit() {
             </div>
           </div>
         </Card>
+        </div>
 
-        <div className="flex flex-col gap-4">
+        <div
+          className={`flex flex-col gap-4 xl:flex ${mobileView === "advisor" ? "flex" : "hidden xl:flex"}`}
+        >
           <Card variant="aurora" className="flex h-full flex-col gap-3">
             <div className="overline">AI Advisor</div>
             <AdvisorChat
@@ -392,11 +426,6 @@ export function CallCockpit() {
         </div>
       </Card>
 
-      <CrisisOverlay
-        open={crisisOpen}
-        initialId={crisisId}
-        onClose={() => setCrisisOpen(false)}
-      />
     </div>
   );
 }

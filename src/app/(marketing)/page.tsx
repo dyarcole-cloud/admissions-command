@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PayorPreview } from "@/components/marketing/PayorPreview";
 
 const STATS = [
   { k: "5-phase", v: "live-call script" },
@@ -77,6 +78,41 @@ export default function LandingPage() {
               </div>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-16 md:px-10">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <div>
+            <span className="accent-line mb-4 block" />
+            <span className="overline">Live data</span>
+            <h2
+              className="font-display mt-3 text-[clamp(1.8rem,4vw,2.8rem)] leading-[1.05] tracking-[-0.022em] text-white"
+              style={{ fontVariationSettings: "'opsz' 96" }}
+            >
+              864 payors. <span className="hero-gradient-text italic" style={{ fontVariationSettings: "'opsz' 72" }}>Tiered, primed, ready.</span>
+            </h2>
+            <p className="mt-4 max-w-xl text-sm text-[var(--ink-2)]">
+              Every commercial carrier, every state Medicaid line, every union
+              trust and federal carve-out — light-tiered, admit rule on each
+              plan, claims playbook attached. Search lives here against the
+              same dataset the cockpit uses.
+            </p>
+            <ul className="mt-6 space-y-2 text-sm text-[var(--ink-2)]">
+              {[
+                "Traffic-light tier per plan (GREEN admit · YELLOW review · RED route)",
+                "Phase-by-phase claims appeal strategy with success rates",
+                "Card-clue + ID prefix lookup so reps recognize the plan before they spell it",
+                "Tenant-importable — drop your own payor sheet, merges into the master",
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2.5">
+                  <span className="mt-1.5 inline-block size-1.5 shrink-0 rounded-full bg-[var(--periwinkle)]" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <PayorPreview />
         </div>
       </section>
 

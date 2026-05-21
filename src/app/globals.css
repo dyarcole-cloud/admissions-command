@@ -307,3 +307,68 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Print styles — handoff card on A4/Letter
+   ───────────────────────────────────────────────────────────── */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0a0e1a !important;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  body {
+    padding: 0 !important;
+  }
+  /* Strip the dark chrome */
+  aside,
+  header,
+  footer,
+  nav,
+  .orb,
+  video,
+  .brain-video-overlay,
+  .print\:hidden {
+    display: none !important;
+  }
+  /* Reset surface containers to white paper */
+  .card-aurora,
+  .card-aurora::before {
+    background: #ffffff !important;
+    border: 1px solid #d4d4d4 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    color: #0a0e1a !important;
+  }
+  .card-aurora::before {
+    display: none !important;
+  }
+  .hero-gradient-text {
+    background: none !important;
+    -webkit-text-fill-color: #0a0e1a !important;
+    color: #0a0e1a !important;
+    filter: none !important;
+  }
+  .overline {
+    color: #475569 !important;
+  }
+  /* Token swaps — everything inherits black on white in print */
+  [class*="text-[var(--ink"],
+  [class*="text-white"] {
+    color: #0a0e1a !important;
+  }
+  [class*="text-[var(--ink-3"] {
+    color: #475569 !important;
+  }
+  [class*="text-[var(--ink-4"] {
+    color: #94a3b8 !important;
+  }
+  /* Page sizing */
+  @page {
+    margin: 0.6in 0.5in;
+  }
+  .handoff-print {
+    page-break-inside: avoid;
+  }
+}

@@ -14,6 +14,7 @@ export type AdvisorCoachPayload = {
 export type InvokeRequest =
   | { op: "advisor.coach"; payload: AdvisorCoachPayload }
   | { op: "advisor.summary"; payload: { callLog: unknown } }
+  | { op: "advisor.narrative"; payload: { assessment: unknown } }
   | { op: "paa.submit"; payload: { assessment: unknown; recipients: { clinicalDir: string; medDir?: string } } };
 
 export type InvokeResponse =

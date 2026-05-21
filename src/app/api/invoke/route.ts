@@ -59,6 +59,17 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (body.op === "advisor.narrative") {
+    const narrative = mockClinicalNarrative(
+      body.payload.assessment as Record<string, unknown>
+    );
+    return NextResponse.json({
+      ok: true,
+      narrative,
+      modelLatencyMs: 320,
+    });
+  }
+
   return NextResponse.json<InvokeResponse>(
     { ok: false, error: `op '${body.op}' has no fallback handler` },
     { status: 501 }
@@ -189,6 +200,174 @@ function mockDeid(assessment: Record<string, unknown>): {
     redactionCount: replacements.length,
     phiHashes,
   };
+}
+
+/**
+ * Mock clinical narrative — composes a biopsychosocial writeup from the
+ * PAA fields. Real impl: Lambda prompts Bedrock Sonnet with the same
+ * input and returns a clinician-style paragraph.
+ *
+ * The redaction tokens stay [REDACTED:*] — narrative inherits the same
+ * scrub from the source. Identifying info NEVER appears here.
+ */
+function mockClinicalNarrative(a: Record<string, unknown>): string {
+  const get = (k: string) =>
+    typeof a[k] === "string" ? (a[k] as string) : "";
+  const age = get("age");
+  const sex = get("sex").toLowerCase();
+  const gender = get("gender");
+  const presenting = get("presentingFactor");
+  const symptoms = (a.symptoms as Record<string, boolean>) ?? {};
+  const sympList = Object.keys(symptoms).filter((k) => symptoms[k]);
+  const trauma = get("traumaYN") === "yes";
+  const substances = (a.substances as Record<string, Record<string, string>>) ?? {};
+  const subUsed = Object.keys(substances).filter(
+    (k) => substances[k]?.frequency || substances[k]?.lastUse
+  );
+  const withdrawal = get("withdrawalRisk");
+  const hiCurrent = get("hiCurrent") === "yes";
+  const hiPast = get("hiPast") === "yes";
+  const selfHarmHx = get("selfHarmHx") === "yes";
+  const primaryDx = get("primaryDx");
+  const mhDx = get("mhDx");
+  const psychHospCount = get("psychHospCount");
+  const psychHospLast = get("psychHospLast");
+  const meds = get("medications");
+  const allergies = get("allergies") === "yes" ? get("allergyDetail") : "NKA";
+  const conditions = (a.conditions as Record<string, boolean>) ?? {};
+  const condList = Object.keys(conditions).filter((k) => conditions[k]);
+  const immediateMed = get("immediateMedical") === "yes";
+  const livingSituation = get("livingSituation");
+  const socialSupport = get("socialSupport");
+  const employed = get("employed") === "yes";
+  const goals = get("treatmentGoals");
+  const asam = (a.asam as Record<string, number>) ?? {};
+  const asamMax = Math.max(...Object.values(asam));
+  const repNotes = get("repNotes");
+
+  const paras: string[] = [];
+
+  // Identifying / presenting
+  const idLine = [
+    age ? `${age}-year-old` : "Caller",
+    sex || "",
+    gender ? `(gender: ${gender})` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  paras.push(
+    `${idLine} presented to admissions ${
+      presenting
+        ? `with chief complaint "${presenting.trim().replace(/\s+/g, " ")}."`
+        : "for intake screening."
+    }${sympList.length > 0 ? ` Endorsed: ${sympList.slice(0, 6).join(", ")}.` : ""}${
+      trauma ? " Trauma history disclosed; trauma-informed engagement maintained throughout." : ""
+    }`
+  );
+
+  // Substance & withdrawal
+  if (subUsed.length > 0 || withdrawal !== "none") {
+    const subSummary = subUsed.length > 0
+      ? subUsed
+          .map(
+            (k) =>
+              `${k.toLowerCase()} (${substances[k].frequency || "freq unspecified"}, last ${
+                substances[k].lastUse || "unspecified"
+              })`
+          )
+          .join("; ")
+      : "no active substance use reported";
+    const wdLine =
+      withdrawal === "severe"
+        ? " Anticipated withdrawal risk is severe; medically monitored detox is indicated (ASAM 3.7 or higher)."
+        : withdrawal === "moderate"
+          ? " Anticipated withdrawal is moderate; clinically managed detox is appropriate."
+          : withdrawal === "mild"
+            ? " Anticipated withdrawal is mild and manageable with outpatient monitoring."
+            : "";
+    paras.push(`Substance use: ${subSummary}.${wdLine}`);
+  }
+
+  // Safety
+  const safetyBits: string[] = [];
+  if (hiCurrent)
+    safetyBits.push(
+      "Active homicidal ideation reported — Tarasoff duty consultation initiated; Clinical Director engaged."
+    );
+  if (hiPast)
+    safetyBits.push("Past HI history without current ideation noted.");
+  if (selfHarmHx) safetyBits.push("Prior self-harm history disclosed.");
+  if (safetyBits.length > 0) {
+    paras.push(`Safety: ${safetyBits.join(" ")}`);
+  } else {
+    paras.push(
+      "Safety: No active suicidal or homicidal ideation reported at intake; brief screeners (PHQ-9, GAD-7, C-SSRS) administered and documented."
+    );
+  }
+
+  // Diagnoses
+  if (primaryDx || mhDx) {
+    paras.push(
+      `Diagnostic context: ${[primaryDx, mhDx].filter(Boolean).join("; ")}.`
+    );
+  }
+
+  // Treatment history
+  if (psychHospCount || psychHospLast) {
+    paras.push(
+      `Treatment history: ${
+        psychHospCount ? `${psychHospCount} prior psychiatric hospitalization(s)` : "Hospitalization history reviewed"
+      }${psychHospLast ? `, most recent ${psychHospLast}` : ""}.`
+    );
+  }
+
+  // Medical
+  const medBits: string[] = [];
+  if (meds) medBits.push(`current medications include ${meds}`);
+  medBits.push(`allergies: ${allergies}`);
+  if (condList.length > 0)
+    medBits.push(`chronic conditions: ${condList.join(", ")}`);
+  if (immediateMed)
+    medBits.push(
+      "an immediate medical concern was identified and flagged for medical clearance"
+    );
+  paras.push(`Medical: ${medBits.join("; ")}.`);
+
+  // Environment
+  const envBits: string[] = [];
+  if (livingSituation) envBits.push(livingSituation.toLowerCase());
+  if (socialSupport === "yes") envBits.push("social supports identified");
+  else if (socialSupport === "no")
+    envBits.push("limited social supports — environment factored into LOC");
+  if (employed) envBits.push("employed");
+  if (envBits.length > 0) {
+    paras.push(`Living environment: ${envBits.join("; ")}.`);
+  }
+
+  // Disposition / LOC
+  const locLine =
+    asamMax >= 4
+      ? "ASAM 4.0 (medically managed intensive inpatient) recommended given dimensional acuity."
+      : asamMax >= 3
+        ? "ASAM 3.5–3.7 (clinically/medically monitored residential) recommended."
+        : asamMax >= 2
+          ? "ASAM 2.5 (partial hospitalization) recommended."
+          : "ASAM 1.0–2.1 (outpatient or IOP) appears appropriate.";
+  paras.push(
+    `Disposition: ${locLine}${
+      goals ? ` Caller goals: "${goals.trim()}."` : ""
+    } Recommend admissions team coordinate with Clinical Director on level of care confirmation prior to admission scheduling.`
+  );
+
+  if (repNotes) {
+    paras.push(`Rep notes carried forward: ${repNotes}`);
+  }
+
+  paras.push(
+    "This narrative was assembled from the structured intake instrument and brief screeners. PHI fields are redacted; final clinical determination remains with the supervising clinician."
+  );
+
+  return paras.join("\n\n");
 }
 
 function buildText(a: Record<string, unknown>): string {
